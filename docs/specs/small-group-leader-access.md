@@ -1,13 +1,17 @@
 # Small group leader access (cross-repo spec)
 
 Small group leaders and deacons see and work on **only the small groups they currently lead or
-co-lead**, and only those groups' reports. Admins and elders keep seeing everything. This is the
-first time membership-management checks roles at all: today every authenticated request can call
-every endpoint (`api/jwt_auth.py` validates `role` but nothing reads it).
+co-lead**, and only those groups' reports. Admins and elders keep seeing everything. Until now
+membership-management only checked roles on the member-link endpoints (`require_roles`); every
+other route is open to any authenticated request.
 
-- **Depends on:** `docs/specs/member-user-linking.md` (the link, `get_current_member`, `GET /me`).
-  Don't start until its membership-management stages are done.
-- **Repo handoffs (to write next):**
+**Split:** this spec covers the existing small group routes and screens. Small group **reports**
+(endpoints and screens) don't exist yet; they come in `docs/specs/small-group-reports.md` (next,
+after a design pass), which applies rules 3, 4, 10 and 11 below from the start.
+
+- **Depends on:** `docs/specs/member-user-linking.md` (implemented: the link,
+  `get_current_member`, `GET /me`).
+- **Repo handoffs (the work, stage by stage):**
   - `membership-management/docs/SMALL-GROUP-LEADER-ACCESS-API-HANDOFF.md`
   - `staff-app/docs/design/SMALL-GROUP-LEADER-ACCESS.md`
 - **auth-server: no change.** `smallGroupLeader` and `deacon` already have the right statements
@@ -16,9 +20,10 @@ every endpoint (`api/jwt_auth.py` validates `role` but nothing reads it).
 
 ## Implementation order
 
-1. `membership-management`: role checks and scoped queries on the small group routes; the same
-   rules for report routes when they're built.
-2. `staff-app`: show only what the role allows, using `GET /me`.
+1. `membership-management`: role checks and scoped queries on the small group routes; `GET /me`
+   `leads` follows the same scope.
+2. `staff-app`: show only what the role allows, using the session role and `GET /me`. It can start
+   once step 1 runs locally. One repo per Claude Code session.
 
 ## Rules (decided, don't reopen)
 
@@ -26,8 +31,9 @@ every endpoint (`api/jwt_auth.py` validates `role` but nothing reads it).
    role, and for scoped roles the group must also be one your member leads.
 2. **Role groups:**
    - **Full:** `admin`, `elder`. Every group and report, as today.
-   - **Scoped:** `smallGroupLeader`, `deacon`. Only groups where their linked member has an
-     **active** (`left_at IS NULL`) period with role `leader` or `co_leader`.
+   - **Scoped:** `smallGroupLeader`, `deacon`. Only groups where their linked member has a
+     `leader` or `co_leader` period that is **active** (`left_at IS NULL`) or **ended by the
+     group closing** (rule 11).
    - **None:** `user`, `pending`. No small group or report access (403).
 3. **Former leaders see nothing** of a group they no longer lead, reports included. Report
    history is not "theirs" once they leave.
@@ -58,9 +64,10 @@ every endpoint (`api/jwt_auth.py` validates `role` but nothing reads it).
     but creating one returns 409 "Link your account to a member to submit reports." The column
     stays required; no `submitted_by_user_id`.
 11. **Closed groups stay visible to their leaders, read-only.** Closed groups are already
-    read-only (`SmallGroupClosedError`). A leader or co-leader whose period is still active sees
-    the closed group and its reports, as an admin would. Former leaders still see nothing
-    (rule 3).
+    read-only (`SmallGroupClosedError`). Closing a group ends every active period on the close
+    date, so "their leaders" means the leaders and co-leaders **when it closed**: a period whose
+    `left_at` is on or after the group's `closed_at`. They see the closed group and its reports,
+    as an admin would. Someone who stopped leading before the close sees nothing (rule 3).
 
 ## Contracts
 
@@ -68,9 +75,10 @@ every endpoint (`api/jwt_auth.py` validates `role` but nothing reads it).
 
 - Reuse `require_roles(*roles)` (`api/jwt_auth.py`, added by the linking handoff, 403 "You don't
   have permission to do this.") and `get_current_member`. Add next to them:
-  - `FULL_ACCESS_ROLES = {"admin", "elder"}`, `SCOPED_ROLES = {"smallGroupLeader", "deacon"}`.
-  - `led_small_group_ids(db, claims) -> set[int] | None`: `None` means all (full role), otherwise
-    the active led/co-led group ids via `members.user_id == claims.sub`. One query.
+  - `FULL_ACCESS_ROLES = {"admin", "elder"}`, `SCOPED_ROLES = {"smallGroupLeader", "deacon"}`
+    (`api/access.py`).
+  - A small group scope dependency: full, or the set of group ids in scope (rule 2) for the
+    caller's member. One query; 403 for any other role.
 - Small group routes:
 
 | Route | Full | Scoped | None |
@@ -81,11 +89,12 @@ every endpoint (`api/jwt_auth.py` validates `role` but nothing reads it).
 | `POST/PATCH/DELETE /small-groups/{id}/members...` | yes | led group, rule 9 limits | 403 |
 | `POST /small-groups`, `POST .../close`, `PUT .../leader` | yes | 403 | 403 |
 
-- Report routes (not built yet; whichever spec builds them applies this): the same rule as group
-  detail, by the report's `small_group_id`. Create sets `submitted_by_member_id` from
-  `get_current_member` (rule 10).
-- The check is done in the query (filter by `led_small_group_ids`), not by loading and then
-  comparing, so lists and single reads use the same rule.
+- `GET /me` `leads` is the same scope, with each period's role.
+- Report routes (`small-group-reports` spec) reuse the scope: the same rule as group detail, by
+  the report's `small_group_id`. Create sets `submitted_by_member_id` from `get_current_member`
+  (rule 10).
+- The check is done in the query (filter by the scope's ids), not by loading and then comparing,
+  so lists and single reads use the same rule.
 
 ### staff-app
 
@@ -93,15 +102,34 @@ every endpoint (`api/jwt_auth.py` validates `role` but nothing reads it).
   screen. Hide controls the API would refuse (create/close group, set leader, rule 9 actions). The
   API is still the guard; hiding is only so people don't hit errors.
 - Rule 9 in the UI: for scoped users, the role menu offers only Member / Co-leader, and their own
-  row and the leader's row have no menu. Rule 10: an admin or elder with no member sees "New
-  report" disabled, with the reason.
-- Groups list for scoped users: title "My groups", empty state when `leads` is empty that says
-  to ask an admin or elder to link the account or add them as a leader.
-- Dashboard: scoped users see their groups and reports, not the admin widgets (already gated by
-  `STAFF_ADMIN_ROLES` in `app/(app)/page.tsx`).
+  row and the leader's row have no menu.
+- Groups list for scoped users: title "My groups", and an empty state that says to ask an admin or
+  elder to link the account or add them as a leader.
+- Other roles don't see Groups in the nav. The dashboard drops the "create the first group" nudge
+  for scoped users. A leader dashboard comes with reports.
+- Rule 10 in the UI (an admin or elder with no member sees "New report" disabled, with the
+  reason) belongs to the reports spec.
+
+## Starter prompts (copy into a fresh Claude Code session per repo)
+
+**membership-management** (run from `members-management/membership-management`, `--add-dir ../docs`)
+
+> Implement `docs/SMALL-GROUP-LEADER-ACCESS-API-HANDOFF.md` in this repo. Read
+> `../docs/specs/small-group-leader-access.md` first for the rules. Stage by stage on branch
+> `small-group-leader-access`, one commit per stage, progress log filled in. Run `ruff` and `ty`
+> each stage and try every role against the routes.
+
+**staff-app** (run from `members-management/staff-app`, `--add-dir ../docs --add-dir ../membership-management`)
+
+> Implement `docs/design/SMALL-GROUP-LEADER-ACCESS.md` in this repo. Read
+> `../docs/specs/small-group-leader-access.md` first. Stage by stage on branch
+> `small-group-leader-access`, one commit per stage, progress log filled in, light and dark,
+> 1440 / 1024 / 390, English and Spanish. The membership-management changes must be running
+> locally; if they aren't there yet, tell me instead of stubbing.
 
 ## Not in this spec
 
+- Small group report endpoints and screens: `docs/specs/small-group-reports.md` (next).
 - Role checks on members, applications and people routes for non-admin roles.
 - Letting former leaders see past reports.
 - Per-group permissions finer than leader/co-leader.
