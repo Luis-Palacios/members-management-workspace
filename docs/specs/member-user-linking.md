@@ -81,7 +81,7 @@ covers browser sessions.
 Alternative if you want a strict member↔invite tie (instead of matching by email): record
 `(member_id, invite_id)` in membership-management when staff-app creates the invite and link by
 that. More tables and one more endpoint; only worth it if two members could share an email,
-which `DuplicateMemberEmailError` already prevents.
+which `DuplicateMemberEmailError` already prevents (member email is unique ignoring case, via a unique index on `lower(email)`).
 
 Since the link now grants access (rule 9, leader-access spec), a wrong auto-link would expose
 another member's groups. Unique member emails keep this safe. If staff change the member's email
