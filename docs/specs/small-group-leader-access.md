@@ -9,21 +9,15 @@ other route is open to any authenticated request.
 (endpoints and screens) don't exist yet; they come in `docs/specs/small-group-reports.md` (next,
 after a design pass), which applies rules 3, 4, 10 and 11 below from the start.
 
-- **Depends on:** `docs/specs/member-user-linking.md` (implemented: the link,
-  `get_current_member`, `GET /me`).
-- **Repo handoffs (the work, stage by stage):**
-  - `membership-management/docs/SMALL-GROUP-LEADER-ACCESS-API-HANDOFF.md`
-  - `staff-app/docs/design/SMALL-GROUP-LEADER-ACCESS.md`
-- **auth-server: no change.** `smallGroupLeader` and `deacon` already have the right statements
-  in `src/permissions/statements.ts`.
-- **Branch name in every repo:** `small-group-leader-access`.
+**Status: implemented** (October 2026). The details live in code; this file keeps the decisions.
 
-## Implementation order
-
-1. `membership-management`: role checks and scoped queries on the small group routes; `GET /me`
-   `leads` follows the same scope.
-2. `staff-app`: show only what the role allows, using the session role and `GET /me`. It can start
-   once step 1 runs locally. One repo per Claude Code session.
+- **Depends on:** `docs/specs/member-user-linking.md` (the link, `get_current_member`, `GET /me`).
+- **Handoffs (stage logs):** `membership-management/docs/SMALL-GROUP-LEADER-ACCESS-API-HANDOFF.md`,
+  `staff-app/docs/design/SMALL-GROUP-LEADER-ACCESS.md`.
+- **auth-server: no change.** `smallGroupLeader` and `deacon` already had the right statements.
+- **Where it lives:** membership-management `api/access.py` (role sets and the small group scope),
+  staff-app `lib/auth/roles.ts` (`getSmallGroupAccess`). Roles are mirrored in three places; change
+  them together.
 
 ## Rules (decided, don't reopen)
 
@@ -69,63 +63,13 @@ after a design pass), which applies rules 3, 4, 10 and 11 below from the start.
     `left_at` is on or after the group's `closed_at`. They see the closed group and its reports,
     as an admin would. Someone who stopped leading before the close sees nothing (rule 3).
 
-## Contracts
+## Contract notes (not obvious from the code)
 
-### membership-management
-
-- Reuse `require_roles(*roles)` (`api/jwt_auth.py`, added by the linking handoff, 403 "You don't
-  have permission to do this.") and `get_current_member`. Add next to them:
-  - `FULL_ACCESS_ROLES = {"admin", "elder"}`, `SCOPED_ROLES = {"smallGroupLeader", "deacon"}`
-    (`api/access.py`).
-  - A small group scope dependency: full, or the set of group ids in scope (rule 2) for the
-    caller's member. One query; 403 for any other role.
-- Small group routes:
-
-| Route | Full | Scoped | None |
-| --- | --- | --- | --- |
-| `GET /small-groups` | all | only led groups | 403 |
-| `GET /small-groups/{id}` | yes | led group, else 404 | 403 |
-| `PATCH /small-groups/{id}` | yes | led group, else 404 | 403 |
-| `POST/PATCH/DELETE /small-groups/{id}/members...` | yes | led group, rule 9 limits | 403 |
-| `POST /small-groups`, `POST .../close`, `PUT .../leader` | yes | 403 | 403 |
-
-- `GET /me` `leads` is the same scope, with each period's role.
-- Report routes (`small-group-reports` spec) reuse the scope: the same rule as group detail, by
-  the report's `small_group_id`. Create sets `submitted_by_member_id` from `get_current_member`
-  (rule 10).
-- The check is done in the query (filter by the scope's ids), not by loading and then comparing,
-  so lists and single reads use the same rule.
-
-### staff-app
-
-- `getMe()` (from the linking spec) decides what to show; the session role decides which kind of
-  screen. Hide controls the API would refuse (create/close group, set leader, rule 9 actions). The
-  API is still the guard; hiding is only so people don't hit errors.
-- Rule 9 in the UI: for scoped users, the role menu offers only Member / Co-leader, and their own
-  row and the leader's row have no menu.
-- Groups list for scoped users: title "My groups", and an empty state that says to ask an admin or
-  elder to link the account or add them as a leader.
-- Other roles don't see Groups in the nav. The dashboard drops the "create the first group" nudge
-  for scoped users. A leader dashboard comes with reports.
-- Rule 10 in the UI (an admin or elder with no member sees "New report" disabled, with the
-  reason) belongs to the reports spec.
-
-## Starter prompts (copy into a fresh Claude Code session per repo)
-
-**membership-management** (run from `members-management/membership-management`, `--add-dir ../docs`)
-
-> Implement `docs/SMALL-GROUP-LEADER-ACCESS-API-HANDOFF.md` in this repo. Read
-> `../docs/specs/small-group-leader-access.md` first for the rules. Stage by stage on branch
-> `small-group-leader-access`, one commit per stage, progress log filled in. Run `ruff` and `ty`
-> each stage and try every role against the routes.
-
-**staff-app** (run from `members-management/staff-app`, `--add-dir ../docs --add-dir ../membership-management`)
-
-> Implement `docs/design/SMALL-GROUP-LEADER-ACCESS.md` in this repo. Read
-> `../docs/specs/small-group-leader-access.md` first. Stage by stage on branch
-> `small-group-leader-access`, one commit per stage, progress log filled in, light and dark,
-> 1440 / 1024 / 390, English and Spanish. The membership-management changes must be running
-> locally; if they aren't there yet, tell me instead of stubbing.
+- The scope check is done in the query (filter by the scope's ids), not by loading and comparing, so
+  lists and single reads use the same rule.
+- Report routes (`small-group-reports` spec) reuse the same scope by the report's `small_group_id`;
+  create sets `submitted_by_member_id` from `get_current_member` (rule 10).
+- The staff-app hides what the API would refuse; the API stays the guard.
 
 ## Not in this spec
 
