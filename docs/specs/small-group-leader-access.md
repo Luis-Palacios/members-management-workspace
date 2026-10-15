@@ -66,9 +66,9 @@ every endpoint (`api/jwt_auth.py` validates `role` but nothing reads it).
 
 ### membership-management
 
-- New `api/authorization.py` (or similar):
+- Reuse `require_roles(*roles)` (`api/jwt_auth.py`, added by the linking handoff, 403 "You don't
+  have permission to do this.") and `get_current_member`. Add next to them:
   - `FULL_ACCESS_ROLES = {"admin", "elder"}`, `SCOPED_ROLES = {"smallGroupLeader", "deacon"}`.
-  - `require_roles(*roles)` dependency → 403 `"Your role can't do this."`
   - `led_small_group_ids(db, claims) -> set[int] | None`: `None` means all (full role), otherwise
     the active led/co-led group ids via `members.user_id == claims.sub`. One query.
 - Small group routes:
