@@ -25,7 +25,11 @@ services below it are separate repos (see `README.md`):
 - Databases are separate, so anything that points across services (e.g. `members.user_id`) is a
   string reference with **no foreign key**. The application keeps it consistent.
 - Roles are defined in `auth-server/src/permissions/statements.ts` and mirrored by hand in
-  `staff-app/lib/auth/roles.ts`. Change both together.
+  `staff-app/lib/auth/roles.ts` and, once small group leader access is built, in
+  membership-management's role sets (`docs/specs/small-group-leader-access.md`). Change them
+  together.
+- The link from a user to their member lives only in membership-management (`members.user_id`).
+  The JWT doesn't carry a member id; membership-management resolves it from `sub`.
 
 ## Specs and handoffs
 
