@@ -20,14 +20,16 @@ services below it are separate repos (see `README.md`):
 
 - staff-app → auth-server: session cookie (admin/invite endpoints) or a short-lived JWT minted from
   the session (`/api/auth/token`).
-- staff-app → membership-management: `Authorization: Bearer <JWT>`. The JWT carries only `sub`
-  (user id) and `role`; membership-management verifies it against auth-server's JWKS.
+- staff-app → membership-management: `Authorization: Bearer <JWT>`. The JWT carries `sub` (user
+  id), `role` (display only) and `perms`; membership-management verifies it against auth-server's
+  JWKS.
 - Databases are separate, so anything that points across services (e.g. `members.user_id`) is a
   string reference with **no foreign key**. The application keeps it consistent.
-- Roles are defined in `auth-server/src/permissions/statements.ts` and mirrored by hand in
-  `staff-app/lib/auth/roles.ts` and, once small group leader access is built, in
-  membership-management's role sets (`docs/specs/small-group-leader-access.md`). Change them
-  together.
+- What a role can do is defined only in `auth-server/src/permissions/statements.ts`. auth-server
+  ships the computed permissions in the session (`permissions`) and the JWT (`perms`); staff-app
+  and membership-management check permissions, never role names
+  (`docs/specs/roles-and-permissions.md`, which also lists what else to touch when adding a
+  resource, action or role).
 - The link from a user to their member lives only in membership-management (`members.user_id`).
   The JWT doesn't carry a member id; membership-management resolves it from `sub`.
 
