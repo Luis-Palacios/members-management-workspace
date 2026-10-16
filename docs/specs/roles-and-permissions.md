@@ -158,6 +158,11 @@ and the JWT, and staff-app and membership-management check **permissions**, neve
 10. **Fail closed.** A JWT without `perms` (minted before auth-server stage 2) has no
     permissions. A session without `permissions` has none.
 
+11. **Your own member is always readable.** `GET /members/{id}` returns the caller's own member
+    (the one linked to their user) whatever their role or permissions, because My profile loads it.
+    Read only: editing it still needs `members: update` and the members scope. *(Added after the
+    membership-management review: without it a linked `user` got 403 on My profile.)*
+
 ## Multi-tenant later
 
 Every tenant has the same roles, so `statements.ts` doesn't change. When tenants arrive, a user's
