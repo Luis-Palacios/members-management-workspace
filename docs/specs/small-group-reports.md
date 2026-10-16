@@ -70,6 +70,20 @@ Rules from the leader access spec are referred to as *access rule N*.
     don't break or extend the streak.
 12. **Church Sunday** for a meeting date is the most recent Sunday on or before it (the same day if
     the meeting is a Sunday). The API returns it so both apps agree.
+13. **No meeting** (added Oct 2026; handoffs `membership-management/docs/SMALL-GROUP-NO-MEETING-API-HANDOFF.md`
+    and `staff-app/docs/design/SMALL-GROUP-NO-MEETING.md`, branch `small-group-no-meeting`; this one
+    **does** change the schema: `small_group_reports.held`, `not_held_reason`).
+    1. A leader or co-leader of an open group can record that the group didn't meet on a date
+       (today or earlier), with an optional reason (≤ 255). It is stored as that date's report with
+       `held = false`, no attendance rows and no group texts, so it occupies the date like a report
+       (rule 1) and follows rules 2, 4–8.
+    2. A no-meeting date is never Not filed / Due, and doesn't count toward Needs follow-up (rule 10).
+    3. It is not a Last report, not Filed in counts, has no attendance and is skipped by
+       missed-meeting streaks (rule 11) and attendance figures.
+    4. Its reason is visible to everyone who can view the group's reports (not private like rule 9).
+    5. Creating a held report on a no-meeting date is allowed only with `replacesNoMeeting: true`;
+       the no meeting is deleted and the report inserted in one transaction. The reverse is never
+       allowed (delete the report first).
 
 ## Contracts
 
