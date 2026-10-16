@@ -52,5 +52,5 @@ services below it are separate repos (see `README.md`):
   repo. Do not make one commit that spans repos.
 - If a stage needs something from another repo that isn't there yet, say so and stop; don't stub it
   in committed code.
-- Mention in your final message anything another repo must change (token re-sync, role mirror,
+- Mention in your final message anything another repo must change (token re-sync, new permission names,
   API type regeneration).
