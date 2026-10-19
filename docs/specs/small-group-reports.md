@@ -54,11 +54,12 @@ Rules from the leader access spec are referred to as *access rule N*.
 7. **Edit and delete any time.** No time window.
 8. **Closed groups are read-only.** Reports of a closed group can be viewed (by full roles and by
    the leaders when it closed, access rule 11) but not created, edited or deleted: 409.
-9. **Observations are pastoral and private.** An attendance row's `observation` is returned only
-   to callers with the **`admin`** or **`elder`** role and to the report's **submitter** (the
-   caller's member is `submitted_by_member_id`). Everyone else, including the group's other leaders
-   and deacons, never receives it: not in the detail, not in lists, not in the summary. When such a caller edits a report, observations they
-   can't see are left untouched (the field is ignored, not cleared).
+9. **Observations are pastoral.** An attendance row's `observation` is returned only to callers
+   with the **`admin`** or **`elder`** role and to the leaders and co-leaders of the report's group
+   (anyone the scope from the access spec lets reach the report), whoever submitted it. Everyone
+   else never receives it: not in the detail, not in lists, not in the summary. Those leaders can
+   also edit observations. A caller who can't see them leaves them untouched on edit (the field is
+   ignored, not cleared). Changed Oct 2026: it used to be the submitter only.
 10. **"Not filed"** is computed, never stored. For each group in scope with a `meeting_day`, every
     date in the last **28 days** before today that falls on that weekday, while the group was open
     (`closed_at` null or the date `<= closed_at`) and had an active `leader` or `co_leader`, with

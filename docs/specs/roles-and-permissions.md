@@ -64,7 +64,7 @@ membership-management's `ARCHITECTURE.md`. Adding a **role** also means its name
    permission is there.
 6. **Leadership changes** (leader-access rule 9): assigning, changing or removing a `leader` needs
    `smallGroups: setLeader`; without `smallGroups: all` you can't change your own row.
-   Observations need `smallGroupReports: viewObservations` or being the submitter. The week view
+   Observations need `smallGroupReports: viewObservations` or leading the report's group. The week view
    needs `smallGroups: all` + `viewObservations`.
 7. **A nav item and its page make the same check**; the page is `notFound()` when it fails, so a
    hidden page is unreachable by URL. Every server action checks before calling the API, and the
