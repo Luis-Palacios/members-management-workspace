@@ -74,9 +74,11 @@ membership-management's `ARCHITECTURE.md`. Adding a **role** also means its name
      everyone. `GET /members` (full rows, email and phone) needs `members: view` + `all`.
    - Leaders view and edit the profiles of members in scope (rule 3), reached from the group
      detail. No Members menu, no creating members.
-   - **Only `members: all` changes `email`**: it's what an accepted invite matches to link a member
-     to a user. A `PATCH` containing `email` is 403 without it, even unchanged, so staff-app leaves
-     the key out.
+   - **`email` is what an accepted invite matches to link a member to a user**, so without `members:
+     all` it can change only while the member has no `user_id` (an unlinked member in scope, rule 3).
+     A `PATCH` containing `email` for a linked member is 403 without `members: all`, even
+     unchanged, so staff-app leaves the key out for a linked member. `members: all` changes it
+     whether or not the member is linked.
    - The member Account card (link, unlink, invite) needs `members: link`.
 9. **Fail closed.** A JWT without `perms` or a session without `permissions` has no permissions;
    an unknown role gets `{}`.
