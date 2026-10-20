@@ -5,7 +5,7 @@ group report; the group's leaders reply. This replaces the Google Sheets habit: 
 observation per person, elders added a comment on that line, leaders replied. Conversations can be
 resolved, and a cross-report **Conversations** inbox shows what is waiting for whom.
 
-**Status: planned** (October 2026).
+**Status:** Part 1 implemented and merged (October 2026); Part 2 (email) planned.
 
 - **Depends on:** `small-group-reports.md` (rule 9 as changed in Oct 2026: the group's leaders see
   observations), `small-group-leader-access.md` (scope), `roles-and-permissions.md`.
@@ -15,7 +15,9 @@ resolved, and a cross-report **Conversations** inbox shows what is waiting for w
 - **Repo handoffs (the work, stage by stage):** Part 1:
   `membership-management/docs/REPORT-CONVERSATIONS-API-HANDOFF.md`,
   `staff-app/docs/design/REPORT-CONVERSATIONS.md`. Part 2 (written once Part 1 is on `main`):
-  `auth-server/docs/REPORT-CONVERSATIONS-EMAIL-HANDOFF.md` and email handoffs in the other two.
+  `auth-server/docs/REPORT-CONVERSATIONS-EMAIL-HANDOFF.md`,
+  `membership-management/docs/REPORT-CONVERSATIONS-EMAIL-API-HANDOFF.md`,
+  `staff-app/docs/design/REPORT-CONVERSATIONS-EMAIL.md`. Part 1 is merged (Oct 2026).
 - **Branch name in every repo:** `report-conversations` (Part 2: `report-conversations-email`).
 - **auth-server: no change in Part 1.** No new permission (rule 4).
 
@@ -44,7 +46,7 @@ Part 1:
    dashboard blocks; delete-report dialog copy.
 
 Part 2 (after Part 1 is on `main`):
-3. `auth-server`: internal endpoint + two templates (en/es), sent through Resend.
+3. `auth-server`: recipient language, templates (en/es), internal endpoint sending through Resend.
 4. `membership-management`: outbox table, recipient rules, fast path with `BackgroundTasks`,
    sweeper loop, opt-out.
 5. `staff-app`: "Conversation emails" toggle in My profile; email links land on the open panel.
@@ -187,6 +189,12 @@ Recap of the decisions; the handoffs hold the detail.
   (logged). A crash mid-send is picked up when the lease expires.
 - **Opt-out**: "Conversation emails" in My profile, stored in membership-management per user id
   (it decides recipients). Default on.
+- **Payload snapshot**: each outbox row stores the exact JSON sent to auth-server, so retries
+  send the same payload under the same Resend idempotency key (Resend rejects a reused key with a
+  different payload). Keys live 24 hours at Resend; the retries end within about 80 minutes.
+- **Recipient language**: stored on the auth-server user (`locale`, `en` | `es`), set from the
+  request at sign-in while empty and whenever the user picks a language in the account menu.
+  Conversation emails use it, falling back to English.
 - **Kill switch**: `CONVERSATION_EMAILS_ENABLED` (default `false`). Off = no outbox rows, no
   sweeper, nothing calls auth-server.
 

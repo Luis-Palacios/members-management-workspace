@@ -4,3 +4,6 @@
 !/CLAUDE.md
 !/README.md
 !/docs/
+
+# macOS Finder metadata, anywhere in the tree
+.DS_Store
