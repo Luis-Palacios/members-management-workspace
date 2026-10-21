@@ -63,7 +63,8 @@ Rules from the leader access spec are referred to as *access rule N*.
 10. **"Not filed"** is computed, never stored. For each group in scope with a `meeting_day`, every
     date in the last **28 days** before today that falls on that weekday, while the group was open
     (`closed_at` null or the date `<= closed_at`) and had an active `leader` or `co_leader`, with
-    no report, is a *not filed* meeting. Today never counts (the meeting may be tonight). Groups
+    no report in that date's church week (Sunday to Saturday, any weekday, like the groups
+    dashboard's rule 6; changed Oct 2026), is a *not filed* meeting. Today never counts (the meeting may be tonight). Groups
     without a meeting day never show it.
 11. **"Missed the last N meetings"** is computed per member from that group's previous reports
     (strictly before the date): the count of consecutive most recent reports where the member was
