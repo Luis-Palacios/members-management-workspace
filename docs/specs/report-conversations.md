@@ -5,7 +5,8 @@ group report; the group's leaders reply. This replaces the Google Sheets habit: 
 observation per person, elders added a comment on that line, leaders replied. Conversations can be
 resolved, and a cross-report **Conversations** inbox shows what is waiting for whom.
 
-**Status:** Part 1 implemented and merged (October 2026); Part 2 (email) planned.
+**Status:** Part 1 implemented and merged (October 2026); Part 2 (email) planned, **after**
+`prayer-follow-up.md`, which adds section threads (rule 2) and lists what they change in Part 2.
 
 - **Depends on:** `small-group-reports.md` (rule 9 as changed in Oct 2026: the group's leaders see
   observations), `small-group-leader-access.md` (scope), `roles-and-permissions.md`.
@@ -64,6 +65,8 @@ One repo per Claude Code session, as usual.
    API still returns each thread's anchor as `{ "type": "attendance", "memberId": n }` so sections
    can be added later (`{ "type": "section", "key": "followUp" }`) without changing the client.
    If sections come, "for the elders to follow up" goes first.
+   *Update (Oct 2026):* section threads are specified in `prayer-follow-up.md` (rule 14), for all
+   three sections.
 
 ### Who sees and writes
 

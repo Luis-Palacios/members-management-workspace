@@ -1,5 +1,10 @@
 # Groups dashboard (cross-repo spec)
 
+> *Update (Oct 2026):* the menu labels changed in `prayer-follow-up.md`: **Groups** is now
+> **Report status** and **Staff** is **Applications & access** (URLs unchanged), with **Prayer &
+> follow-up** between them. Leaders and deacons now get Dashboard ▸ **My groups** / **Prayer &
+> follow-up** instead of a single item.
+
 Dashboard becomes a nested menu for admins and elders: **Dashboard ▸ Groups** (where they land,
 `/`) and **Dashboard ▸ Staff** (today's dashboard: applications, users and invites,
 `/dashboard/staff`). The Groups dashboard keeps what leaders already get (*My groups*) and adds,
