@@ -34,3 +34,4 @@ handoff doc inside every repo it touches (see `CLAUDE.md`).
 | Spec | Status |
 | --- | --- |
 | [Member ↔ user linking](docs/specs/member-user-linking.md) | Implemented; branches `member-user-linking` await review and merge |
+| [Inactive members](docs/specs/inactive-members.md) | Implemented and merged in all three repos |

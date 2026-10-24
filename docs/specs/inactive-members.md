@@ -6,8 +6,9 @@ gives a member a **status** (`active` | `inactive`). An inactive member keeps th
 history, drops out of everything aimed at current members (small groups, pickers, member lists,
 later bulk email), loses sign-in, and can be reactivated.
 
-**Status:** rules agreed, screens designed, handoffs written (October 24, 2026). Not started in
-any repo.
+**Status: implemented** (October 24, 2026) on branch `inactive-members` in `auth-server`,
+`membership-management` and `staff-app`, all merged (every stage ticked in each repo's progress
+log). This file keeps the decisions; the work and its history live in the handoffs and in the code.
 
 - **Builds on:** `member-user-linking.md`, `user-admin-actions.md` (*ban rule N*: the ban this
   feature uses), `roles-and-permissions.md` (*permissions rule N*), `small-group-leader-access.md`,
@@ -31,15 +32,6 @@ any repo.
   - `membership-management/docs/INACTIVE-MEMBERS-API-HANDOFF.md`
   - `staff-app/docs/design/INACTIVE-MEMBERS.md`
 - **Branch name in every repo:** `inactive-members`.
-
-## Implementation order
-
-1. `auth-server`: `members: setStatus` (rule 4). One stage.
-2. `membership-management`: schema and migration, then deactivate / reactivate / history, then
-   inactive members filtered out everywhere (rule 11), then docs.
-3. `staff-app`: API client and actions, Members list, Member detail, dialogs, Group detail.
-
-One repo per Claude Code session, in this order.
 
 ## Rules (decided, don't reopen)
 
@@ -107,53 +99,33 @@ One repo per Claude Code session, in this order.
 15. **Guests are unaffected.** A member who leads or co-leads a guest group follows rules 6 and 7
     like any group.
 
-## Schema (membership-management)
+## Where it lives
 
-```text
-members
-  + status            VARCHAR(10) NOT NULL DEFAULT 'active'   CHECK IN ('active','inactive')
-  + status_changed_at TIMESTAMPTZ NULL
-
-member_status_changes                         -- append-only (rule 2)
-  id                  Identity PK
-  member_id           FK members NOT NULL
-  status              VARCHAR(10) NOT NULL    -- the status it changed TO
-  reason              VARCHAR(20) NULL        -- rule 3; CHECK (status = 'inactive') = (reason IS NOT NULL)
-  effective_date      DATE NOT NULL           -- "date they left" (rule 6); today on reactivate
-  note                TEXT NULL               -- <= 1000 chars, trimmed, empty -> NULL
-  changed_by_user_id  VARCHAR(255) NOT NULL   -- JWT sub; no FK (separate DBs)
-  created_at          TIMESTAMPTZ NOT NULL DEFAULT now()
-  index (member_id, created_at DESC)
-
-small_group_members.left_reason
-  + 'member_inactive'                         -- LeftReason; set only by rule 6
-```
-
-Every existing member becomes `active`; no history rows are backfilled. Enums are VARCHAR +
-CHECK, like the rest of the schema.
-
-## Contracts
-
-All camelCase on the wire.
-
-| Route | Permission | Notes |
-|---|---|---|
-| `POST /members/{id}/deactivate` | `members: setStatus` | Body `{ reason, effectiveDate, note? }` → `MemberDetail`. 404; 409 `already_inactive`; 409 `leads_group` with `groups: [{ id, name }]`; 409 `self`; 422 future date. |
-| `POST /members/{id}/reactivate` | `members: setStatus` | Body `{ note? }` → `MemberDetail`. 404; 409 `already_active`. |
-| `GET /members/{id}/status-history` | `members: setStatus` | Newest first: `{ status, reason, effectiveDate, note, changedByUserId, changedByName, createdAt }`. `changedByName` is the name of the member linked to `changedByUserId`, else `null`. |
-| `GET /members?status=` | unchanged | `active` (default) / `inactive` / `all`. Rows gain `status`, `inactiveSince`, `inactiveReason` (null without `setStatus`). |
-| `GET /members/{id}` | unchanged | Gains `status`, `inactiveSince`, `inactiveReason`, `inactiveNote` (last two null without `setStatus`), and `pastSmallGroups` (periods closed by the latest deactivation; empty when active). |
-| `GET /members/options` | unchanged | Active only. |
-| `GET /members/search` | unchanged | Rows gain `status`. |
-| `POST /small-groups/{id}/members`, role changes | unchanged | 409 `member_inactive`. |
-| `PUT /members/{id}/user` | unchanged | 409 `member_inactive`. |
-| internal accepted-invite | unchanged | Skips inactive members (no link). |
-
-409 bodies keep the existing `detail` message and add a machine-readable `code` (and `groups` for
-`leads_group`), so staff-app can pick the dialog without parsing text.
-
-The ban reason `Member marked inactive` is a constant in staff-app only. auth-server stores it as
-any other `banReason`.
+- **Schema:** `members.status` and `status_changed_at`, the append-only `member_status_changes`
+  table, and `small_group_members.left_reason = 'member_inactive'`. See the migration in
+  `membership-management`. Every member that existed became `active`; no history was backfilled.
+- **Contracts:** the FastAPI `/docs` page of membership-management is the reference
+  (`POST /members/{id}/deactivate` and `/reactivate`, `GET /members/{id}/status-history`,
+  `GET /members?status=`, and `status`, `inactiveSince`, `inactiveReason`, `inactiveNote`,
+  `pastSmallGroups` on members). What the code can't tell you:
+  - 409 bodies keep the English `detail` and add a machine-readable `code` (`already_inactive`,
+    `already_active`, `leads_group` with `groups: [{ id, name }]`, `self`, `member_inactive`), so
+    staff-app picks the dialog without parsing text. A future date is 422.
+  - `pastSmallGroups` is the periods the **latest deactivation** ended, not every `member_inactive`
+    period. (First built as "latest `left_at`", which showed an earlier deactivation's groups after
+    a second one that ended none; fixed in `membership-management` before merge.)
+  - The ban reason `Member marked inactive` is a constant in staff-app only. auth-server stores it
+    as any other `banReason`, and staff-app compares it exactly to decide what reactivating may
+    unban.
+- **As built, beyond the rules:**
+  - Anything in staff-app that resolves "which member is this user linked to" asks for
+    `status=all`, since an inactive member keeps their `userId`; the "members to link to this
+    user" picker leaves inactive members out.
+  - Deactivating never waits on the ban: staff-app calls the API, then bans, then revalidates its
+    pages, so a half-done state (inactive, sign-in still on) is never rendered by its own
+    re-render. The *Sign-in still on* retry is for a ban that really failed.
+  - The Account card says sign-in was turned off "on {date}" using the date they left, since
+    auth-server doesn't expose when a ban happened.
 
 ## Not in this spec
 
