@@ -1,6 +1,7 @@
 # Umbrella repo: tracks only the shared workspace files. Each service below is its own git repo.
 /*
 !/.gitignore
+!/AGENTS.md
 !/CLAUDE.md
 !/README.md
 !/docs/
