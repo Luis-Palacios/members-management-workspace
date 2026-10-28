@@ -11,50 +11,28 @@ Two pieces of work that build on each other:
   with a date range (last 3 months by default), group and type filters. The Profile tab gets a
   *Recent activity* card.
 
-**Status:** designed (desktop, 1024, 390, light and dark, English and Spanish, leader and elder),
-October 2026. Not started in any repo.
+**Status:** built in staff-app and membership-management (Part 1 and Part 2) and design-reviewed in
+October 2026. Only the decisions are kept here; the code and the repo handoffs hold the rest. Still
+open in staff-app (`docs/design/REPORT-TAGS.md`): a screen-reader pass on the editor, a touch
+`(hover: none)` pass and a full focus-order pass.
 
 - **Depends on:** `small-group-reports.md` (the three texts, rule 9 observations),
   `prayer-follow-up.md` (the shared endpoint, section threads, WhatsApp copy),
   `guest-small-groups.md` (guests, `PersonKey`, guest search rule 14 and scope rule 17),
   `inactive-members.md` (inactive members never in pickers), `small-group-leader-access.md` (scope).
-- **Design:** Staff App canvas (https://claude.ai/artifact/PLs9gdHVcigkRSAWJrsKs1), page
-  **"Tagging people"**. Its two blue notes match this spec. Rows and boards:
-  - *Report form: items and tags*: `ReportForm-Tags` (typing @), `ReportForm-Tags-Edit-Elder`
-    (older report, *Tag someone*, *Named in this item*), `ReportForm-Tags-Phone` (picker as a
-    sheet), `ReportForm-Tags-Phone-Dark-ES`. The existing `ReportForm-*` boards on page "Small group
-    reports" now show items too (ReportForm tweaks `tags`, `legacy`, `user`).
-  - *Where tags show*: `ReportDetail-Tags`, `PrayerFollowUp-Tags` (the existing `ReportDetail-*`,
-    `PrayerFollowUp-*` and `ThreadPanel` boards were updated the same way).
-  - *Person pages: Profile and Timeline tabs*: `MemberDetail-Activity`, `MemberDetail-Timeline`,
-    `GuestDetail-Activity`, `GuestDetail-Timeline`, `GuestDetail-Activity-Leader`,
-    `GuestDetail-Timeline-Leader`.
-  - *Timeline card: filters, preview and phone*: `PersonTimeline` (component, tweaks `variant`,
-    `viewer`, `person`, `range`, `group`, `filter`, `size`), `PersonTimeline-Filtered`,
-    `PersonTimeline-Phone-Filters`, `PersonTimeline-Phone-Dark-ES`.
+- **Design:** Staff App canvas (https://claude.ai/artifact/PLs9gdHVcigkRSAWJrsKs1), page **"Tagging
+  people"** (report form, where tags show, Profile and Timeline tabs, `PersonTimeline`).
 - **Repo handoffs (the work, stage by stage):**
   - `membership-management/docs/REPORT-TAGS-API-HANDOFF.md`
   - `staff-app/docs/design/REPORT-TAGS.md`
 - **auth-server: no change.** No new permission, no email (rules 13 and 24).
 - **Branch name in every repo:** `report-tags` for Part 1, `person-timeline` for Part 2.
 
-## Implementation order
+## Order it was built in
 
-Part 1 is an **expand / contract** change, because the report body changes shape:
-
-1. `membership-management` stages 1–4 (Part 1, *expand*): items and tags tables with a backfill,
-   the new `sections` field on writes and reads, the tag search, section threads and the shared
-   endpoint on items. The old text fields keep working in both directions. Deploy.
-2. `staff-app` stages 1–5 (Part 1): types and client, the item editor in the report form, the read
-   views. Deploy.
-3. `membership-management` stage 5 (Part 1, *contract*): drop the old text fields and columns.
-   **Only after staff-app Part 1 is deployed**; nothing else reads them.
-4. `membership-management` stages 6–7 (Part 2): the timeline endpoints.
-5. `staff-app` stages 6–9 (Part 2): the timeline component, tabs and Recent activity, the Timeline
-   tab, docs.
-
-One repo per Claude Code session, as usual. Part 2 can start in membership-management while
-staff-app is still on Part 1 (it only reads the new tables).
+Part 1 was expand / contract (the report body changed shape): API stages 1–4, staff-app Part 1,
+then API stage 5 (drop the old text fields) only after staff-app Part 1 was deployed. Part 2 (the
+timeline endpoints, then the tabs) has no ordering constraint beyond the endpoint existing first.
 
 ## Rules (decided, don't reopen)
 
@@ -166,117 +144,16 @@ staff-app is still on Part 1 (it only reads the new tables).
 
 ## Contracts
 
-### membership-management
+The endpoints, bodies and errors live in the code and in `membership-management/docs/REPORT-TAGS-API-HANDOFF.md`
+(tag search, `sections` on reports, `GET /members|guests/{id}/timeline`). Errors the staff app tells
+apart (status + a phrase from `detail`): 422 `tag` (an unknown person or a newly tagged inactive
+member), 422 `items` (more than 20 items or 10 tags), 422 `range` (from after to, in the future, or
+longer than 2 years).
 
-Shapes are camelCase `CamelModel`. `Person` is the existing `{ type: "member" | "guest", id, name }`.
+## Known gaps (decided not to do, October 2026)
 
-**Segments** are how an item travels in both directions:
-
-```jsonc
-// A segment is plain text or a tagged person. Input sends `person` as { type, id };
-// output adds `name` (current) and `viewable` (rule 12, for the caller).
-[
-  { "type": "text", "text": "For " },
-  { "type": "person", "person": { "type": "member", "id": 198, "name": "Gabriela Castro", "viewable": true } },
-  { "type": "text", "text": "’s mother, recovering after Tuesday’s surgery." }
-]
-```
-
-**Report write** (`POST /small-groups/{id}/reports`, `PATCH /small-group-reports/{id}`, held body):
-new optional field `sections`. When present it wins; when absent, the old three text fields are
-used (each line becomes an item, rule 2) until stage 5 removes them.
-
-```jsonc
-"sections": {
-  "prayer":   [ { "segments": [ { "type": "text", "text": "For " }, { "type": "person", "person": { "type": "member", "id": 198 } }, { "type": "text", "text": "’s mother…" } ] } ],
-  "praise":   [],
-  "followUp": [ { "segments": [ { "type": "text", "text": "Several asked how to talk about their faith…" } ] } ]
-}
-```
-
-**Report reads** (`GET /small-group-reports/{id}`, and each entry of `GET /small-group-reports/shared`)
-gain `sections` with the same keys; each item is `{ "id": 9012, "segments": [...] }`. The old text
-fields stay in responses (items joined by line breaks, people by full name) until stage 5.
-
-| Route | Purpose |
-| --- | --- |
-| `GET /small-groups/{id}/tag-search?q=` | New. Church-wide people to tag in this group's reports (rules 8, 10). `smallGroupReports: create` or `update`, small group scope. ≤ 10 rows; `[]` under 2 characters. |
-| `GET /members/{id}/timeline` | New (Part 2). `members: view` + members scope. |
-| `GET /guests/{id}/timeline` | New (Part 2). `guests: view` + guests scope. |
-| Section thread start | 422 `This section is empty.` now means *no items*. |
-
-```jsonc
-// GET /small-groups/7/tag-search?q=pab
-[
-  { "person": { "type": "member", "id": 211, "name": "Pablo Sánchez" }, "inThisGroup": true,
-    "groups": [ { "id": 7, "name": "Jóvenes Bello Horizonte", "audience": "members", "role": "member" } ], "phoneLast4": null },
-  { "person": { "type": "member", "id": 340, "name": "Pablo Medina" }, "inThisGroup": false,
-    "groups": [ { "id": 3, "name": "Matrimonios Altamira", "audience": "members", "role": "member" } ], "phoneLast4": null },
-  { "person": { "type": "guest", "id": 45, "name": "Pablo José Ortiz" }, "inThisGroup": false,
-    "groups": [ { "id": 9, "name": "Primeros Pasos", "audience": "guests", "role": "member" } ], "phoneLast4": "4821" }
-]
-```
-
-```jsonc
-// GET /members/162/timeline?from=2026-07-16&to=2026-10-15&smallGroupId=  (or ?latest=3)
-{
-  "person": { "type": "member", "id": 162, "name": "Lucía Fernández" },
-  "from": "2026-07-16", "to": "2026-10-15",          // null with ?latest
-  "earliestDate": "2026-02-02",                       // oldest visible row, any group (Show 3 more months)
-  "groups": [ { "id": 7, "name": "Jóvenes Bello Horizonte", "audience": "members" } ],  // groups with a visible row, any time
-  "counts": { "notes": 2, "prayer": 2, "praise": 3, "followUp": 1 },   // in from..to and the group, after rule 23
-  "rows": [
-    {
-      "reportId": 418, "meetingDate": "2026-10-08",
-      "smallGroup": { "id": 7, "name": "Jóvenes Bello Horizonte", "audience": "members" },
-      "attendance": { "role": "co_leader", "attendedGroup": true, "attendedChurch": true },   // null: not on the list, or hidden (rule 23)
-      "observation": null,                                // or { "text": "…", "submittedBy": { "memberId": 130, "name": "Andrea Gutiérrez" } }
-      "items": [ { "id": 9031, "section": "praise", "segments": [ … ] } ]   // only items tagging this person
-    }
-  ]
-}
-```
-
-Errors the staff app tells apart (status + a phrase from `detail`): 422 `tag` (an unknown person or
-a newly tagged inactive member), 422 `items` (more than 20 items or 10 tags), 422 `range` (from
-after to, in the future, or longer than 2 years), plus the existing report errors.
-
-### staff-app
-
-- Routes: `/members/[id]/timeline` and `/guests/[id]/timeline` (Part 2), with `?range`, `?from`,
-  `?to`, `?group`. The existing pages become the Profile tab.
-- Types and client: `ReportSegment`, `ReportItem`, `ReportSections`; `searchTaggablePeople(groupId,
-  q)`; `getMemberTimeline` / `getGuestTimeline`. `ReportInput` sends `sections`; the old text fields
-  go away when the API's stage 5 lands.
-- The report draft in the browser moves from three strings to three item lists; older drafts are
-  split into items on load (rule 2).
-
-## Deploy order
-
-- **API stages 1–4 before staff-app Part 1.** They accept both body shapes and return both, so
-  today's staff-app keeps working against them.
-- **API stage 5 only after staff-app Part 1 is deployed.** Today's staff-app sends and reads the
-  old fields; it would lose the three texts against stage 5.
-- Part 2 has no ordering constraint beyond the API endpoint existing before the staff-app tab ships.
-
-## Starter prompts (copy into a fresh Claude Code session per repo)
-
-**membership-management** (run from `members-management/membership-management`, `--add-dir ../docs`)
-
-> Implement Part 1, stages 1–4, of `docs/REPORT-TAGS-API-HANDOFF.md` in this repo. Read
-> `../docs/specs/report-tags.md` first, then `../docs/specs/prayer-follow-up.md` (section threads,
-> shared endpoint) and `../docs/specs/guest-small-groups.md` (guest search and scope). Stage by stage
-> on branch `report-tags`, one commit per stage, progress log filled in. Run `ruff`, `ty` and
-> `alembic check` each stage and try every role in the handoff's list. Stop after stage 4: stage 5
-> waits for the staff app.
-
-**staff-app** (run from `members-management/staff-app`, `--add-dir ../docs --add-dir ../membership-management`)
-
-> Implement Part 1 of `docs/design/REPORT-TAGS.md` in this repo. Read
-> `../docs/specs/report-tags.md` first, then open the "Tagging people" page of the Staff App canvas
-> and its blue notes. Stage by stage on branch `report-tags`, one commit per stage, progress log
-> filled in. membership-management stages 1–4 must be running locally; if they aren't there yet, tell
-> me instead of stubbing.
-
-For Part 2, the same prompts with *Part 2*, branch `person-timeline`, and the Timeline rows of the
-canvas page.
+- **Timeline and Recent activity chip names (rule 11).** The timeline returns only the items that
+  tag the person, so it can't see a same-first-name person tagged only in another item of the same
+  report (report 53: *Kevin Ú.* and *Kevin M.* both show *Kevin* there). The report pages, the
+  conversation panel, Prayer & follow-up and *Copy for WhatsApp* do disambiguate. Fixing it needs
+  the timeline API to return a per-report short name.
