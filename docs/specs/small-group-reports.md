@@ -156,4 +156,5 @@ Errors the staff app tells apart (matched on status and `detail`, never shown):
 - Report exports, printing and charts over time.
 - Uploaded member photos (the avatar is initials; a photo later uses the same circle).
 - Former leaders seeing past reports (access rule 3 stays).
-- Drafts saved on the server (the staff app keeps an unsent draft in the browser only).
+- Drafts saved on the server: specified in `report-autosave.md` (Oct 2026). Until it ships, the
+  staff app keeps an unsent draft in the browser only.
