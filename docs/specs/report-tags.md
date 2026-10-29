@@ -76,8 +76,9 @@ timeline endpoints, then the tabs) has no ordering constraint beyond the endpoin
     can't search guests (guest rule 17). Here any report writer can find any active member and any
     guest **by name**, and sees only what rule 8 lists: name, group, role, last 4 phone digits. No
     email, address, notes or attendance. This is what makes tagging across groups possible.
-11. **Chip:** the person's **first name**; first name + last initial (*Pablo S.*) when two people
-    tagged in the same report share a first name. Full name in the tooltip and for screen readers.
+11. **Chip:** the person's **first two words plus the initial of the third** (*Luis Palacios M.*),
+    split on spaces with no attempt to tell given names from surnames (many people go by their
+    second name); a one-word name stays as it is. Full name in the tooltip and for screen readers.
     Members: soft accent fill. Guests: outline with the waving hand. Pages always show the person's
     **current** name, so a rename carries through.
 12. **Links:** a chip opens the person's page (Timeline tab, Part 2) when the viewer may open it:
@@ -149,11 +150,3 @@ The endpoints, bodies and errors live in the code and in `membership-management/
 apart (status + a phrase from `detail`): 422 `tag` (an unknown person or a newly tagged inactive
 member), 422 `items` (more than 20 items or 10 tags), 422 `range` (from after to, in the future, or
 longer than 2 years).
-
-## Known gaps (decided not to do, October 2026)
-
-- **Timeline and Recent activity chip names (rule 11).** The timeline returns only the items that
-  tag the person, so it can't see a same-first-name person tagged only in another item of the same
-  report (report 53: *Kevin Ú.* and *Kevin M.* both show *Kevin* there). The report pages, the
-  conversation panel, Prayer & follow-up and *Copy for WhatsApp* do disambiguate. Fixing it needs
-  the timeline API to return a per-report short name.
