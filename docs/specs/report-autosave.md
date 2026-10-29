@@ -13,9 +13,7 @@ state, and keeps a device copy as an offline buffer.
   - `membership-management/docs/REPORT-AUTOSAVE-API-HANDOFF.md`
   - `staff-app/docs/design/REPORT-AUTOSAVE.md`
 
-  Both are staged in `docs/handoffs/` here. Each repo's session copies its file into place as the
-  first commit on `report-autosave` (the starter prompts say so), and the staged copy is deleted
-  once both are in.
+  Both are committed on each repo's `report-autosave` branch (not merged to `main`).
 - **auth-server: no change.** Starting a draft and submitting use `smallGroupsReport: create`;
   saving uses `update`; discarding uses `delete`. Every role that files reports already has all
   three.
@@ -165,8 +163,7 @@ The existing reports errors (`already a report`, `Link your account`, `closed`, 
 
 **membership-management** (run from `members-management/membership-management`, `--add-dir ../docs`)
 
-> On a new branch `report-autosave`, copy `../docs/handoffs/REPORT-AUTOSAVE-API-HANDOFF.md` to
-> `docs/` (remove its "Staged" comment) and commit it. Then implement stages 1–5 of
+> Check out the existing `report-autosave` branch (it holds the handoff). Implement stages 1–5 of
 > `docs/REPORT-AUTOSAVE-API-HANDOFF.md` in this repo. Read
 > `../docs/specs/report-autosave.md` first for the rules, then `../docs/specs/small-group-reports.md`.
 > Stage by stage on branch `report-autosave`, one commit per stage, progress log filled in. Run
@@ -174,9 +171,8 @@ The existing reports errors (`already a report`, `Link your account`, `closed`, 
 
 **staff-app** (run from `members-management/staff-app`, `--add-dir ../docs --add-dir ../membership-management`)
 
-> On a new branch `report-autosave`, copy `../docs/handoffs/REPORT-AUTOSAVE.md` to `docs/design/`
-> (remove its "Staged" comment) and commit it. Then implement `docs/design/REPORT-AUTOSAVE.md` in
-> this repo. Read `../docs/specs/report-autosave.md`
+> Check out the existing `report-autosave` branch (it holds the handoff). Implement
+> `docs/design/REPORT-AUTOSAVE.md` in this repo. Read `../docs/specs/report-autosave.md`
 > first, then open the "Report auto-save" page of the Staff App canvas for each stage's boards.
 > Stage by stage on branch `report-autosave`, one commit per stage, progress log filled in, light
 > and dark, 1440 / 1024 / 390, English and Spanish. The membership-management `report-autosave`
