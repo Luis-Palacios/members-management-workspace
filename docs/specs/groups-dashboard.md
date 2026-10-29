@@ -48,6 +48,7 @@ item with their own groups, unchanged.
 4. **Week = Sunday to Saturday**: `[church_sunday(d), church_sunday(d) + 6]` for any date `d`
    (reports rule 12), so a report's week and its church Sunday always agree. Default: the week of
    the church's today. Any past week can be shown; a week after the current one is refused.
+   *(Changed by `church-wide-no-meeting.md`, rule 11: next week is allowed too.)*
 5. **Groups in a week:** groups that are **open today**. Closed groups never show, not even in past
    weeks (they can't take a report, reports rule 8).
 6. **Status of a group in a week**, first match wins. `D` is the week's date that falls on the

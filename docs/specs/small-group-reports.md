@@ -86,6 +86,9 @@ Rules from the leader access spec are referred to as *access rule N*.
     5. Creating a held report on a no-meeting date is allowed only with `replacesNoMeeting: true`;
        the no meeting is deleted and the report inserted in one transaction. The reverse is never
        allowed (delete the report first).
+14. **Church-wide no meeting** (added Oct 2026, `docs/specs/church-wide-no-meeting.md`): admins and
+    elders mark a whole week as no meeting for every open group. It relaxes rule 2 for no meetings
+    only: they may be dated up to the end of next week.
 
 ## Contracts
 
