@@ -35,7 +35,7 @@ Two pieces of work:
     - `PersonTimeline` (tweak `status`: `off` | `on`) and `GuestDetail` (`statusEntries`).
     - Variants: `PersonTimeline-Status`, `PersonTimeline-Status-Dark-ES`,
       `GuestDetail-Timeline-Status-Leader`, `GuestDetail-Activity-Status-Leader`.
-- **Repo handoffs (to write):**
+- **Repo handoffs (the work, stage by stage):**
   - `auth-server/docs/INACTIVE-GUESTS-HANDOFF.md` (small: two `guests` actions)
   - `membership-management/docs/INACTIVE-GUESTS-API-HANDOFF.md`
   - `staff-app/docs/design/INACTIVE-GUESTS.md`
