@@ -167,10 +167,10 @@ One repo per Claude Code session, as usual.
 membership-management's `/docs` page will be the reference once built. What the code won't tell
 you:
 
-- `POST /guests/{id}/deactivate` `{ reason, leftOn?, note? }` and `POST /guests/{id}/reactivate`
+- `POST /guests/{id}/deactivate` `{ reason, effectiveDate, note? }` and `POST /guests/{id}/reactivate`
   `{ note? }`. 409 bodies keep the English `detail` and add `code`, as for members:
   `already_inactive`, `already_active`, `guest_inactive` (adding without `reactivate: true`). A
-  future `leftOn` is 422.
+  future `effectiveDate` is 422.
 - Guest detail, list rows and search results gain `status` and `inactiveSince`; detail adds
   `inactiveReason`, `inactiveNote` (rule 9) and the list `?status=` changes meaning (rule 10).
 - `POST /small-groups/{id}/guests` gains `reactivate: bool` (rule 6). It can be combined with
