@@ -1,10 +1,17 @@
 # Report auto-save: drafts on the server (cross-repo spec)
 
-Small group leaders came from Google Sheets, where nothing is ever lost. Today a report is only kept
-in the browser that started it (`localStorage`, new reports only, keyed by group and exact date),
-and the edit screen keeps nothing, so leaders who "forgot to save" sometimes start over. This spec
-makes every report **auto-save to the server** from the first change, adds a **Draft / Submitted**
+Small group leaders came from Google Sheets, where nothing is ever lost. Before this spec a report
+was only kept in the browser that started it (`localStorage`, new reports only, keyed by group and
+exact date), and the edit screen kept nothing, so leaders who "forgot to save" sometimes started
+over. This spec makes every report **auto-save to the server** from the first change, adds a **Draft / Submitted**
 state, and keeps a device copy as an offline buffer.
+
+**Status:** built and in production (2026-11-03): membership-management stages 1–6 (stage 6 is
+`beb61eb`) and staff-app stages 1–8 (PR 96, then PR 99 so the no-meeting reason edit sends
+`version`). Only the decisions are kept here; the code and the repo handoffs hold the rest. Open
+follow-ups are in the staff-app handoff's "Status": a second leader continuing a draft is untried,
+and a draft on a day that isn't the group's meeting day shows nowhere for others (rule 15 has no
+row to go on; decide whether the API's list should add one).
 
 - **Depends on:** `small-group-reports.md` (rules 1–13), `small-group-leader-access.md` (scope),
   `report-tags.md` (items), `report-conversations.md`, `prayer-follow-up.md`,
@@ -12,25 +19,20 @@ state, and keeps a device copy as an offline buffer.
 - **Repo handoffs (the work, stage by stage):**
   - `membership-management/docs/REPORT-AUTOSAVE-API-HANDOFF.md`
   - `staff-app/docs/design/REPORT-AUTOSAVE.md`
-
-  Both are merged to `main` (API stages 1–5; staff-app stages 1–8, PR 96). What is left is in the
-  staff-app handoff's "Status and what's pending": the elder-side check, the API's stage 6 once
-  the staff app is deployed, then trimming this spec to its decisions.
-- **auth-server: no change.** Starting a draft and submitting use `smallGroupsReport: create`;
+- **auth-server: no change.** Starting a draft and submitting use `smallGroupReports: create`;
   saving uses `update`; discarding uses `delete`. Every role that files reports already has all
   three.
 - **Design:** Staff App canvas (https://claude.ai/artifact/PLs9gdHVcigkRSAWJrsKs1), page **"Report
   auto-save"**. Its blue rules note matches this spec.
 - **Branch name in every repo:** `report-autosave`.
 
-## Implementation order
+## Order it was built in
 
-1. `membership-management` stages 1–5 (expand): schema, draft-blind reads, draft writes, draft
-   reads. The old staff app keeps working throughout: a create without `status` still makes a
-   submitted report, and a PATCH without `version` is still accepted.
-2. `staff-app` (all stages). Starts once API stage 4 runs locally.
-3. `membership-management` stage 6 (contract): `version` becomes required on PATCH and submit, the
-   create default becomes `draft`. Only after the new staff app is deployed.
+Expand / contract. membership-management stages 1–5 (schema, draft-blind reads, draft writes, draft
+reads) kept the old staff app working: a create without `status` made a submitted report and a
+PATCH without `version` was accepted. Then the whole staff app. Then, once that was deployed,
+membership-management stage 6 (the contract): `version` required on save and submit, creates
+default to `draft`, the roster's old `existingReportId` / `existingReportHeld` gone.
 
 ## Rules (decided, don't reopen)
 
@@ -107,36 +109,12 @@ state, and keeps a device copy as an offline buffer.
 
 ## Contracts
 
-### membership-management
-
-Schema (`small_group_reports`, migration on `report-autosave`):
-
-| Column | Change |
-| --- | --- |
-| `status` | **New**, text, `draft` \| `submitted`, not null, default `submitted` (backfill: all `submitted`) |
-| `submitted_by_member_id`, `submitted_at` | Become **nullable**; CHECK: both null when `draft`, both set when `submitted` |
-| `started_by_member_id`, `started_at` | **New.** Who and when the report was first saved (backfill: the submitter and `submitted_at`) |
-| `last_edited_by_member_id`, `last_edited_at` | **New**, nullable. Last save after the first one (member null for an unlinked admin) |
-| `version` | **New**, int, not null, default 1. +1 on every write |
-
-`small_group_report_attendances.attended_group` and `attended_church` become **nullable**. The
-service makes sure a submitted report never has a null (rule 5); the DB can't check across tables.
-
-Routes (camelCase JSON, unchanged ones not listed):
-
-| Route | Change |
-| --- | --- |
-| `POST /small-groups/{id}/reports` | Body gains `status` (`draft` \| `submitted`; default `submitted` until stage 6, then `draft`). A draft allows null answers. Response has `id`, `status`, `version` |
-| `PATCH /small-group-reports/{id}` | Body gains `version`. Draft: null answers allowed. Submitted: complete, as today. Bumps `version`, sets `lastEdited*` |
-| `POST /small-group-reports/{id}/submit` | **New.** `{ version }`. Checks rule 5, sets status, submitter, time. 200 with the detail |
-| `DELETE /small-group-reports/{id}` | Unchanged; a draft can be deleted by anyone who can see it (rule 14) |
-| `POST /small-groups/{id}/reports` (no meeting) | Gains `replacesDraft: true` (rule 18) |
-| `GET /small-group-reports/{id}` | Gains `status`, `version`, `startedBy`, `startedAt`, `lastEditedBy`, `lastEditedAt`. A draft the caller can't see is 404 |
-| `GET /small-groups/{id}/report-roster?date=` | `existingReport` gains `status`; for a draft the caller can't see: `{ status: "draft" }` with no id |
-| `GET /small-group-reports` | Draft rows (`kind: "draft"`) for those who see them; `hasDraft` on not-filed rows otherwise |
-| `GET /small-group-reports/summary` | Per group: `draft` (id, date, answered / roster count, `lastSavedAt`) when the caller sees one |
-| `GET /small-group-reports/week` | `hasDraft` on `notFiled` / `today` rows. Status is unchanged (rule 15) |
-| Every other report read | Filters `status = 'submitted'` (rule 16) |
+The schema, routes and bodies live in the code and in
+`membership-management/docs/REPORT-AUTOSAVE-API-HANDOFF.md`. In short: a report row has `status`
+(`draft` | `submitted`), `started_by` / `started_at`, `last_edited_by` / `last_edited_at` and a
+`version` bumped on every write; a draft's attendance answers may be null. `POST
+/small-group-reports/{id}/submit` is the one way out of draft. Every save and submit sends the
+`version` it is based on (422 without it), and a create without `status` is a draft.
 
 Errors the staff app tells apart (status + a phrase from `detail`, never shown):
 
@@ -148,37 +126,6 @@ Errors the staff app tells apart (status + a phrase from `detail`, never shown):
 | 409 | `draft` (conversations) | Starting a conversation on a draft (rule 16) |
 | 422 | `incomplete` | Submit with an answer missing (rule 5) |
 | 422 | `attendance` | Rows don't match the roster: reload it (rule 11) |
-
-The existing reports errors (`already a report`, `Link your account`, `closed`, `future`,
-`didn't lead`) are unchanged.
-
-### staff-app
-
-- **One editor** for a draft and a submitted report at `/groups/reports/[id]/edit`; `/new` hands
-  over to it with `router.replace` after the first save, so a reload resumes the server draft.
-  `EditReportForm` and the browser-draft code are removed.
-- The save queue, device outbox and indicator live in one client module (the handoff names it).
-- My reports, the leader dashboard and Group detail show drafts to the people who see them;
-  Reports and Report status show *Draft started* to everyone else.
-
-## Starter prompts (copy into a fresh Claude Code session per repo)
-
-**membership-management** (run from `members-management/membership-management`, `--add-dir ../docs`)
-
-> Check out the existing `report-autosave` branch (it holds the handoff). Implement stages 1–5 of
-> `docs/REPORT-AUTOSAVE-API-HANDOFF.md` in this repo. Read
-> `../docs/specs/report-autosave.md` first for the rules, then `../docs/specs/small-group-reports.md`.
-> Stage by stage on branch `report-autosave`, one commit per stage, progress log filled in. Run
-> `ruff` and `ty` each stage and try every role against the routes. Don't start stage 6.
-
-**staff-app** (run from `members-management/staff-app`, `--add-dir ../docs --add-dir ../membership-management`)
-
-> Check out the existing `report-autosave` branch (it holds the handoff). Implement
-> `docs/design/REPORT-AUTOSAVE.md` in this repo. Read `../docs/specs/report-autosave.md`
-> first, then open the "Report auto-save" page of the Staff App canvas for each stage's boards.
-> Stage by stage on branch `report-autosave`, one commit per stage, progress log filled in, light
-> and dark, 1440 / 1024 / 390, English and Spanish. The membership-management `report-autosave`
-> stages 1–4 must be running locally; if they aren't there yet, tell me instead of stubbing.
 
 ## Not in this spec
 
