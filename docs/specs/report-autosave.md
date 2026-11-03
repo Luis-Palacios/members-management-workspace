@@ -13,7 +13,9 @@ state, and keeps a device copy as an offline buffer.
   - `membership-management/docs/REPORT-AUTOSAVE-API-HANDOFF.md`
   - `staff-app/docs/design/REPORT-AUTOSAVE.md`
 
-  Both are committed on each repo's `report-autosave` branch (not merged to `main`).
+  Both are merged to `main` (API stages 1–5; staff-app stages 1–8, PR 96). What is left is in the
+  staff-app handoff's "Status and what's pending": the elder-side check, the API's stage 6 once
+  the staff app is deployed, then trimming this spec to its decisions.
 - **auth-server: no change.** Starting a draft and submitting use `smallGroupsReport: create`;
   saving uses `update`; discarding uses `delete`. Every role that files reports already has all
   three.
