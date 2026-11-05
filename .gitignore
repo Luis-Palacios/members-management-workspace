@@ -10,3 +10,6 @@
 
 # macOS Finder metadata, anywhere in the tree
 .DS_Store
+
+# Private keys, anywhere in the tree (gh-as-bot also looks for one inside .agents/)
+*.pem
