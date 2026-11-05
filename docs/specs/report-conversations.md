@@ -168,7 +168,9 @@ each elder still **hears about** what leaders write is the job of email, per per
 21. **Unwatching is per group**, from the group's page or the list in My profile. Only the
     opt-outs are stored. Unwatching a group doesn't stop **participant** emails for threads you've
     commented in, and it changes nothing in the app (inbox, badge, dashboards). The global
-    "Conversation emails" switch wins over everything: off means no conversation emails.
+    "Conversation emails" switch wins over everything: off means no conversation emails, including
+    ones already queued (checked again right before each send). Unwatching, like losing access
+    (rule 23), applies to emails planned after the change; one already queued still goes out.
 22. **Channel-neutral:** the setting is "watch this group", not "email me about this group", so
     push notifications (later) follow the same rule without a second set of preferences.
 23. **Every email goes to someone who can open it.** Whatever the reason (leader, participant,
@@ -325,11 +327,14 @@ For a `report_conversation.comment_added` event:
   **Watchers go through the same check:** the possible watchers (`with-permission`, superset) join
   the same permissions batch, and only those accepted for the group watch it.
 - **Candidate snapshot, no call inside a DB transaction.** For a batch of claimed events the worker
-  reads each event's candidates (read-only), makes **one** permissions call for all of them, then
-  processes each event in its own transaction using **exactly that candidate set**: nobody is added
-  inside the transaction, and a user missing from the permissions response counts as "can't read".
-  Someone who comments in between is covered by their own comment's event. The possible-watcher list
-  is fetched once per sweep, before any claim. The fast path does the same for its one event.
+  reads each event's candidates (read-only), looks up all of their permissions (in chunks of at
+  most 500 ids, the route's limit, merged before any event is processed; if any chunk fails, the
+  whole lookup is a transient failure and no event in the batch is processed on partial data),
+  then processes each event in its own transaction using **exactly that candidate set**: nobody is
+  added inside the transaction, and a user missing from the permissions response counts as "can't
+  read". Someone who comments in between is covered by their own comment's event. The
+  possible-watcher list is fetched once per sweep, before any claim. The fast path does the same
+  for its one event.
 - De-duplicate by user id; the reason that wins is `participant`, then `leader`, then `watcher`.
   Never the author. A watcher who unwatched the group is dropped as a watcher only (rule 21).
 - **The boundary runs one way:** the conversation code never asks about channel preferences. It
@@ -395,7 +400,7 @@ For a `report_conversation.comment_added` event:
   backoff), `next_attempt_at`, `claim_token` (uuid), `last_error` (short: status code, error
   `code` or exception class, no PII). Statuses: events `pending
   | processing | processed | failed | dead | expired`; deliveries `pending | sending | sent | failed
-  | dead | expired`. Each table has a partial index on `next_attempt_at` where status is pending,
+  | dead | expired | suppressed`. Each table has a partial index on `next_attempt_at` where status is pending,
   failed or in progress.
 
 ### Processing and sending
@@ -418,9 +423,13 @@ For a `report_conversation.comment_added` event:
   the claim token: `status = 'failed'`, `last_error`, `failures + 1`, `next_attempt_at` from the
   backoff. The attempt stays counted: an exception here is a bug or a DB error, not an outage
   (the permissions call ran before the transaction; if *it* fails, that's a transient failure).
-- **Sending a delivery:** `Sender.send(payload, idempotency key)`, then act on the status code
-  table above. The idempotency key is `mm:notification-delivery:{id}`; the payload never changes
-  after insert, as Resend requires (same key + different payload = rejected).
+- **Sending a delivery:** first re-check the recipient's preference for the delivery's `category`
+  and `channel` (a local lookup inside `notifications/`). If it's off now, the delivery ends
+  `suppressed` (final, not counted as a failure) and nothing is sent; the conversation's throttle
+  row is left as is (rule 20's trade-off). Otherwise `Sender.send(payload, idempotency key)`, then
+  act on the status code table above. The idempotency key is `mm:notification-delivery:{id}`; the
+  payload never changes after insert, as Resend requires (same key + different payload =
+  rejected).
 - **Claiming** (both tables): `SELECT … FOR UPDATE SKIP LOCKED`, **batch of 10**, and in the same
   statement set the in-progress status, a new `claim_token`, **`attempts = attempts + 1`** (so a
   crash or hang still counts) and `next_attempt_at = now() + lease`. A row claimed with `attempts`
@@ -469,7 +478,7 @@ For a `report_conversation.comment_added` event:
 - **Monitoring:** each run logs, and exposes for the Phase 9 alarms, the **age of the oldest
   pending row** in each table and the count of `dead` rows.
 - **Retention:** `run_once()` purges `processed`/`expired` events after 30 days and
-  `sent`/`dead`/`expired` deliveries after 90 days.
+  `sent`/`dead`/`expired`/`suppressed` deliveries after 90 days.
 
 ### Settings, language, switches
 
@@ -530,7 +539,9 @@ session, as usual) before that repo's Part 2 work starts, next to the section-th
   duplicate email and `attempts` went up; **auth-server down for 2 hours → nothing goes `dead`, and
   everything sends once it's back**; auth-server up but Resend returning 503 for 2 hours → the
   same; a wrong internal token, or the route not deployed yet (bare 404) → retries, an error
-  logged, nothing `dead`; a processing exception → `failed` with `last_error` set; an event older
+  logged, nothing `dead`; an email queued, then "Conversation emails" turned off before it sends →
+  `suppressed`, no email; a batch with more than 500 candidates → permissions fetched in chunks,
+  nobody dropped; a processing exception → `failed` with `last_error` set; an event older
   than 24 h → `expired`.
 - **staff-app** (`REPORT-CONVERSATIONS-EMAIL.md`): stage 1 adds the watched-groups list in My
   profile and the Watching switch on `/groups/[id]` (only for the full-scope audience and while
