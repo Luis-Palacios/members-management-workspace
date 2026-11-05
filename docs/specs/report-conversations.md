@@ -9,7 +9,8 @@ resolved, and a cross-report **Conversations** inbox shows what is waiting for w
 `prayer-follow-up.md`, which adds section threads (rule 2) and lists what they change in Part 2.
 *Update (Nov 2026):* Part 1b (an **Unread** inbox tab with *Mark all read*, rule 17), **watching
 groups** (rules 18–23, elders and admins get emails for leaders' comments in the groups they watch)
-and an **event-first, worker-based** Part 2 design were added before Part 2 started. The existing Part 2 handoffs need the changes listed in
+and an **event-first, worker-based** Part 2 design were added before Part 2 started. The existing
+Part 2 handoffs need the changes listed in
 [Changes to the Part 2 handoffs](#changes-to-the-part-2-handoffs-nov-2026) before work begins.
 
 - **Depends on:** `small-group-reports.md` (rule 9 as changed in Oct 2026: the group's leaders see
@@ -146,10 +147,11 @@ One repo per Claude Code session, as usual.
 *Needs my reply* stays per side (rule 12): it's a shared queue, one answer is enough. Making sure
 each elder still **hears about** what leaders write is the job of email, per person:
 
-18. **Who watches:** the **full-scope observation audience**, users with both `smallGroups: all`
-    and `smallGroupReports: viewObservations` (elders and admins today), the same people rule 3
-    lets read every group's conversations. They watch **every group by default**, including groups
-    created later and closed groups (rule 13). It comes from the permissions, not from stored rows:
+18. **Who watches:** the **full-scope observation audience**: users with `smallGroups: all` whom
+    the shared read check (rule 23) lets read every group's conversations (today that also takes
+    `smallGroups: view`, `smallGroupReports: view` and `viewObservations`; elders and admins).
+    They watch **every group by default**, including groups created later and closed groups
+    (rule 13). It comes from the permissions, not from stored rows:
     someone who gains them watches everything at once, and someone who loses either stops. Leaders
     have no watch setting; they are always emailed about their own groups (Part 2 recipients) and
     can only use the global switch.
@@ -261,11 +263,14 @@ membership-management                                                           
 - **`POST /internal/notifications`** (shared `INTERNAL_API_TOKEN`, `X-Internal-Token`, the reverse
   of the existing member-link call). Body:
   `{ "idempotencyKey": "mm:notification-delivery:501", "recipientUserId": "u_abc", "template":
-  "report-conversation.new" | "report-conversation.reply", "data": { … }, "path": "/groups/reports/812?person=1207" }`.
+  "report-conversation.new" | "report-conversation.reply", "data": { … }, "path": "…" }`.
+  `path` is the thread's deep link, one of `/groups/reports/{id}?person={memberId}` (a member's
+  row), `?guest={guestId}` (a guest's row, `guest-small-groups.md`) or `?section={key}` (a
+  section, `prayer-follow-up.md`); auth-server accepts only those three shapes.
   `data` for both report-conversation templates: `actorName`, `groupName`, `meetingDate`,
-  `reason` (`leader` | `participant` | `watcher`), `topic` (`person` | `prayer` | `praise` |
-  `followUp`, from `prayer-follow-up.md`), `startedBy` (`elders` | `leaders`, for the "new"
-  title). auth-server **validates `data` against a schema per template** (a zod union keyed on
+  `reason` (`leader` | `participant` | `watcher`), `topic` (`person` for a member or a guest row |
+  `prayer` | `praise` | `followUp`), `startedBy` (`elders` | `leaders`, for the "new" title).
+  auth-server **validates `data` against a schema per template** (a zod union keyed on
   `template`), looks up the recipient's email and language, renders, sends, and passes
   `idempotencyKey` to Resend. Errors carry a body `{ "code": "…", "message": "…" }`, so a version
   mismatch between the services is visible in logs. **Status codes, exactly** (both sides agree on
@@ -274,17 +279,17 @@ membership-management                                                           
   | Code | Meaning | Sender does |
   | --- | --- | --- |
   | 2xx | sent | `sent` |
-  | 410, or 404 with `code: recipient_unavailable` | recipient gone (unknown, banned, deactivated) | `dead` |
-  | 409 `idempotency_conflict` | same key, different payload: a bug | `dead`, logged as an error |
-  | 422 `unknown_template` / `invalid_data` | the services disagree on a template | `dead`, logged as an error |
-  | 404 without that code | the route itself is missing (deploy order, wrong base URL) | transient; log an error and feed an alarm |
-  | 401, 403 | token wrong (rotation, bad config) | transient; log an error and feed an alarm |
+  | 410, or 404 `recipient_unavailable` | recipient gone (unknown, banned, deactivated) | `dead` |
+  | 409 `idempotency_conflict` | same key, different payload: a bug | `dead`, error logged |
+  | 422 `unknown_template` / `invalid_data` | the services disagree on a template | `dead`, error logged |
+  | 404 without that code | route missing (deploy order, wrong base URL) | transient; error + alarm |
+  | 401, 403 | token wrong (rotation, bad config) | transient; error + alarm |
   | 408, 429, 5xx, timeout, connection error | transient | transient (see *Failures and retries*) |
 - **`GET /internal/users/with-permission?permission=…&permission=…`** (same token) →
   `{ "userIds": [...] }`: users holding **all** the listed permissions, computed from
-  `statements.ts`, never from role names; banned or deactivated users left out. Used for the
-  **watcher list** only: `smallGroups:all` + `smallGroupReports:view` +
-  `smallGroupReports:viewObservations`, the full-scope readers of `conversation_group_ids`.
+  `statements.ts`, never from role names; banned or deactivated users left out. Used only to find
+  **possible watchers**: `?permission=smallGroups:all`, a superset. Who among them really watches
+  is decided by the shared check (rule 23), not by this query, so the rule has one copy.
 - **`POST /internal/users/permissions`** (same token) body `{ "userIds": [...] }` (up to 500) →
   `{ "users": { "u_abc": <perms> } }`, `<perms>` in the same shape as the JWT's `perms`. Unknown,
   banned or deactivated users are absent. Used to run the API's own read check on each candidate
@@ -306,18 +311,25 @@ For a `report_conversation.comment_added` event:
 - **A soft-deleted comment** (`deleted_at` set by the time the event is processed) gives no
   emails: the event is marked `processed` with no deliveries, as when the comment or conversation
   is gone.
-- **Current audience only (rule 23), one copy of the rule.** `access.py` gets a pure predicate,
-  `can_read_group_conversations(perms, scope, small_group_id)`, built from the existing pieces
-  (`smallGroupReports: view`; a full scope needs `viewObservations`; a scoped user needs to lead the
-  group, or have led it when it closed). `conversation_access`, `conversation_group_ids` and the
-  worker all call it. The worker builds each candidate's `SmallGroupScope` from
-  `members.user_id` the way the API does, gets their `perms` from
-  `POST /internal/users/permissions`, and drops anyone the predicate rejects. Watchers come from the
-  watcher list, which holds exactly the full-scope readers.
-- **No call inside a DB transaction.** For a batch of claimed events the worker reads the
-  candidates (read-only), makes **one** permissions call for all of them, then processes each
-  event in its own transaction. The watcher list is fetched once per sweep, before any claim. The
-  fast path does the same for its one event.
+- **Current audience only (rule 23), one copy of the rule.** `access.py` gets two pure functions,
+  built from the existing code and used by the API and the worker alike:
+  - `small_group_scope_for(perms, led_group_ids, member_id)`: today's `_small_group_scope` without
+    the claims and the DB (`None` without `smallGroups: view`; full with `smallGroups: all`;
+    otherwise the groups the member leads, or led when the group closed).
+  - `can_read_group_conversations(perms, scope, small_group_id)`: `smallGroupReports: view`; a full
+    scope needs `viewObservations`; a scoped user needs the group in their scope.
+
+  `get_small_group_scope`, `conversation_access` and `conversation_group_ids` call them. The worker
+  gets every candidate's `perms` from `POST /internal/users/permissions`, builds their scope from
+  `members.user_id` the way the API does, and keeps only those the second function accepts.
+  **Watchers go through the same check:** the possible watchers (`with-permission`, superset) join
+  the same permissions batch, and only those accepted for the group watch it.
+- **Candidate snapshot, no call inside a DB transaction.** For a batch of claimed events the worker
+  reads each event's candidates (read-only), makes **one** permissions call for all of them, then
+  processes each event in its own transaction using **exactly that candidate set**: nobody is added
+  inside the transaction, and a user missing from the permissions response counts as "can't read".
+  Someone who comments in between is covered by their own comment's event. The possible-watcher list
+  is fetched once per sweep, before any claim. The fast path does the same for its one event.
 - De-duplicate by user id; the reason that wins is `participant`, then `leader`, then `watcher`.
   Never the author. A watcher who unwatched the group is dropped as a watcher only (rule 21).
 - **The boundary runs one way:** the conversation code never asks about channel preferences. It
@@ -332,8 +344,11 @@ For a `report_conversation.comment_added` event:
   deadlock:
   ```sql
   INSERT INTO report_conversation_notify_state AS s (user_id, conversation_id, last_notified_at)
-  SELECT u, :conversation_id, clock_timestamp()
+  SELECT u, :conversation_id, :occurred_at
   FROM unnest(CAST(:user_ids AS varchar[])) AS u
+  WHERE coalesce((SELECT r.last_read_at FROM report_conversation_reads r
+                  WHERE r.user_id = u AND r.conversation_id = :conversation_id),
+                 '-infinity') < :occurred_at
   ORDER BY u
   ON CONFLICT (user_id, conversation_id) DO UPDATE SET last_notified_at = excluded.last_notified_at
   WHERE s.last_notified_at
@@ -342,9 +357,21 @@ For a `report_conversation.comment_added` event:
                     '-infinity')
   RETURNING user_id;
   ```
-  Only users it returns get a delivery. Postgres re-checks the `WHERE` against the latest locked
-  row, so two events processed at the same moment give one email. `clock_timestamp()`, not `now()`
-  (the transaction's start). The throttle doesn't read deliveries, so purging them can't change it.
+  Only users it returns get a delivery.
+  - **Stamped with the comment's time, not the worker's clock.** `:occurred_at` is the event's
+    `occurredAt`, which is exactly the comment's `created_at` (the value also written to
+    `last_comment_at`). So opening the thread, or *Mark all read* (which sets `last_read_at` to
+    `last_comment_at`, rule 17), always lifts the throttle. With the worker's clock it was always
+    later than any comment time, and *Mark all read* never lifted it.
+  - **Already read → no email.** The first `WHERE` skips anyone whose `last_read_at` is at or after
+    the comment: they saw it in the app before the worker ran (the 60 s head start, an outage).
+  - **Concurrency and order:** Postgres re-checks the conflict `WHERE` against the latest locked
+    row, so two events processed at the same moment give one email. Out of order (a later
+    comment's event first) the stamp can't go backwards: the earlier event then either finds the
+    throttle held, or the user read after the later comment and the first `WHERE` skips them.
+  - **Accepted edge:** a read that lands while the comment's transaction is still committing counts
+    as having read it. That's the same rule the in-app unread flag uses (rule 11).
+  - The throttle doesn't read deliveries, so purging them can't change it.
 
 ### Tables (membership-management)
 
@@ -357,9 +384,10 @@ For a `report_conversation.comment_added` event:
 | `small_group_watch_opt_outs` | domain | PK `(user_id, small_group_id)` (FK cascade to the group), `created_at`. No row = watching |
 
 - **Event payload** (version 1): `conversationId`, `commentId`, `side`, `authorUserId`,
-  `startsThread`, `occurredAt`. Ids and facts only, never comment text. The event identifies
-  itself; the consumer still reads the conversation tables for participants and leaders, so it
-  lives in membership-management. Same rows can later be relayed to SQS/EventBridge unchanged.
+  `startsThread`, `occurredAt` (= the comment's `created_at`, exactly). Ids and facts only, never
+  comment text. The event identifies itself; the consumer still reads the conversation tables for
+  participants and leaders, so it lives in membership-management. Same rows can later be relayed
+  to SQS/EventBridge unchanged.
 - **No foreign keys** on events, so deleting a report doesn't cascade to them: a consumer that
   finds the comment or conversation gone marks the event `processed` with no deliveries.
 - **Claim columns** (both generic tables): `status`, `attempts` (claims that ended in a crash,
@@ -374,7 +402,7 @@ For a `report_conversation.comment_added` event:
 
 - **Comment transaction:** insert the comment and one `outbox_events` row (`next_attempt_at = now()
   + 60 s`, so the fast path has a head start). Nothing else, no calls.
-- **Dependencies first, then claim.** A sweep fetches the watcher list **before** claiming
+- **Dependencies first, then claim.** A sweep fetches the possible-watcher list **before** claiming
   anything. If auth-server can't be reached, it claims nothing from **either** table this sweep.
 - **Processing an event**, one transaction whose **first statement is the fence**:
   ```sql
@@ -409,8 +437,8 @@ For a `report_conversation.comment_added` event:
   - **Permanent** (the `dead` codes in the table): `dead` at once.
   - So `dead` = a permanent code, or the poison cap (5 claims that crashed, hung or raised).
     `expired` = still not done after 24 h, e.g. an outage longer than that.
-- **Lease rule:** `lease > batch × per-item timeout + margin`. With a 5 s sender timeout, batch 10 and
-  a 2-minute lease: 50 s + margin, fine. Changing either number means re-checking the rule.
+- **Lease rule:** `lease > batch × per-item timeout + margin`. With a 5 s sender timeout, batch 10
+  and a 2-minute lease: 50 s + margin, fine. Changing either number means re-checking the rule.
 - **Fenced writes:** every update after a claim (finish, fail, release) is `WHERE id = :id AND
   claim_token = :token`. Zero rows updated = the lease was lost and someone else owns the row: log
   it and undo nothing else. For events this is the first statement of the processing transaction
@@ -435,9 +463,9 @@ For a `report_conversation.comment_added` event:
 - **Fast path, best-effort:** the comment route adds a `BackgroundTasks` task that processes that one
   event and sends its deliveries right after the response, with its own DB session, through the
   same claim code (so it never races the sweeper). Nothing depends on it: without it, the sweep
-  picks the event up within about 2 minutes. It has no sweep cache: it fetches the watcher list
-  before claiming its one event, and that event's candidates' permissions before processing it. A separate worker can later be woken with `LISTEN/NOTIFY`
-  instead.
+  picks the event up within about 2 minutes. It has no sweep cache: it fetches the possible-watcher
+  list before claiming its one event, and that event's candidates' permissions before processing
+  it. A separate worker can later be woken with `LISTEN/NOTIFY` instead.
 - **Monitoring:** each run logs, and exposes for the Phase 9 alarms, the **age of the oldest
   pending row** in each table and the count of `dead` rows.
 - **Retention:** `run_once()` purges `processed`/`expired` events after 30 days and
@@ -472,16 +500,20 @@ session, as usual) before that repo's Part 2 work starts, next to the section-th
   (template key, per-template zod schema, the exact status-code table with error `code`s,
   `idempotencyKey` passed to Resend). Add a stage for the two user routes:
   `GET /internal/users/with-permission` (several permissions, all must hold) and
-  `POST /internal/users/permissions` (perms per user, JWT shape). Templates gain `reason = watcher` (its "why" line and unwatch hint) and a "new" variant for
-  `startedBy = leaders` (the title can't say "An elder"). Copy en/es on the canvas first.
+  `POST /internal/users/permissions` (perms per user, JWT shape). Accept `?guest=` paths as well as
+  `?person=` and `?section=`. Templates gain `reason = watcher` (its "why" line and unwatch hint)
+  and a "new" variant for `startedBy = leaders` (the title can't say "An elder"). Copy en/es on the
+  canvas first.
 - **membership-management** (`REPORT-CONVERSATIONS-EMAIL-API-HANDOFF.md`): rework it around this
   section. Stage 1: config (`EMBEDDED_WORKER`), the five tables (claim columns with `attempts` and
-  `failures`). Stage 2: extract `can_read_group_conversations` in `access.py` and make
-  `conversation_access` / `conversation_group_ids` call it (behaviour unchanged, Part 1 routes
-  re-tested); the comment transaction inserts only the event; the report-conversations consumer
-  (soft-delete check, audience through the shared predicate, recipients, unwatch, sorted atomic
-  throttle) and `notifications/` (preferences, deliveries), one way only. Stage 3: the auth-server
-  client, all three calls (`with-permission`, `permissions`, the `Sender`), mapping the
+  `failures`). Stage 2: extract `small_group_scope_for` and `can_read_group_conversations` in
+  `access.py` and make `get_small_group_scope`, `conversation_access` and
+  `conversation_group_ids` call them (behaviour unchanged, Part 1 routes re-tested); the comment
+  transaction inserts only the event; the report-conversations consumer (soft-delete check, the
+  pinned candidate snapshot, audience and watchers through the shared check, recipients, unwatch,
+  the throttle stamped with `occurredAt`) and `notifications/` (preferences, deliveries), one way
+  only. `path` uses `?person=`, `?guest=` or `?section=` by the thread's anchor. Stage 3: the
+  auth-server client, all three calls (`with-permission`, `permissions`, the `Sender`), mapping the
   status-code table and error `code`s. Stage 4: claiming (batch, attempts at claim, claim token),
   the fence as the first statement of event processing, recording a failed processing outcome in
   a second transaction, sending, the three outcome kinds (transient gives the attempt back),
@@ -492,7 +524,9 @@ session, as usual) before that repo's Part 2 work starts, next to the section-th
   leader gets the email** (the main case); a leader starts a thread → every watching elder gets one
   email; an elder who unwatched doesn't, unless they commented; **two leaders reply at the same
   moment → one email**; a leader who stepped down, or whose role lost `smallGroupReports: view`,
-  gets nothing; a comment deleted before processing → no email; kill the worker mid-batch → no
+  gets nothing; a comment deleted before processing → no email; **the user opens the thread
+  before the worker runs → no email**; **after *Mark all read*, the next leader comment → an
+  email**; an email link to a guest's row opens that guest's panel; kill the worker mid-batch → no
   duplicate email and `attempts` went up; **auth-server down for 2 hours → nothing goes `dead`, and
   everything sends once it's back**; auth-server up but Resend returning 503 for 2 hours → the
   same; a wrong internal token, or the route not deployed yet (bare 404) → retries, an error
@@ -502,7 +536,8 @@ session, as usual) before that repo's Part 2 work starts, next to the section-th
   profile and the Watching switch on `/groups/[id]` (only for the full-scope audience and while
   emails are on); stage 2's panel note for leaders' side changes from "No email is sent" to "Elders
   watching this group get an email"; the *Decided* line "per user, not per group" becomes "per
-  user, plus per group for watchers".
+  user, plus per group for watchers"; stage 3 (sign-in return and the phone panel) keeps `?guest=`
+  as it keeps `?person=` and `?section=`.
 - **Canvas**: the Watching switch, the My profile list, the *Unread* tab with *Mark all read*, and
   the watcher email variants need boards before the staff-app and auth-server stages that use them.
 
