@@ -57,7 +57,8 @@ Part 1b, Unread tab (in-app only, runs as usual, not learning mode; can ship bef
 
 Part 2 (after Part 1 is on `main`):
 3. `auth-server`: recipient language; templates (en/es) including the watcher variants; the generic
-   `POST /internal/notifications` sending through Resend; `GET /internal/users/with-permission`.
+   `POST /internal/notifications` sending through Resend; `GET /internal/users/with-permission`
+   and `POST /internal/users/permissions`.
 4. `membership-management`: the worker entry point; `outbox_events`; the report-conversations
    consumer (audience, recipients, watchers, throttle); the generic `notifications/` module
    (deliveries, preferences, sender); expiry, monitoring, purge; opt-out and watch endpoints.
@@ -170,9 +171,11 @@ each elder still **hears about** what leaders write is the job of email, per per
     push notifications (later) follow the same rule without a second set of preferences.
 23. **Every email goes to someone who can open it.** Whatever the reason (leader, participant,
     watcher), a recipient must be in the conversation's **current** audience (rule 3) when the email
-    is planned: in scope **and** holding the permission. A leader who stepped down, a leader whose
-    role lost `smallGroupReports: viewObservations`, or an elder whose role changed stops getting
-    emails about conversations they commented in, as they stop seeing them.
+    is planned, decided by **the same function the API uses** to let them read it (no second copy
+    of the rule). A leader who stepped down, a leader whose role lost `smallGroupReports: view`, or
+    an elder whose role changed stops getting emails about conversations they commented in, as they
+    stop seeing them. Leaders reach conversations through their scope, not through
+    `viewObservations`, and keep getting their emails.
 
 ## Contracts (Part 1)
 
@@ -240,7 +243,8 @@ membership-management                                                           
 │  │  audience, recipients, watchers,  │   │  notification_deliveries        │ │
 │  │  unwatch, throttle (domain rules) │   │  Sender ────────────────────────┼─┼─► POST /internal/notifications
 │  └───────────────────────────────────┘   └─────────────────────────────────┘ │     → template → Resend
-│        ▲ full-scope audience (cached per sweep) ◄────────────────────────────┼──── GET /internal/users/with-permission
+│        ▲ watcher list (per sweep) ◄──────────────────────────────────────────┼──── GET /internal/users/with-permission
+│        ▲ candidates' permissions (per batch) ◄───────────────────────────────┼──── POST /internal/users/permissions
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -262,24 +266,29 @@ membership-management                                                           
   `reason` (`leader` | `participant` | `watcher`), `topic` (`person` | `prayer` | `praise` |
   `followUp`, from `prayer-follow-up.md`), `startedBy` (`elders` | `leaders`, for the "new"
   title). auth-server **validates `data` against a schema per template** (a zod union keyed on
-  `template`; unknown template or bad data → 422), looks up the recipient's email and language,
-  renders, sends, and passes `idempotencyKey` to Resend. **Status codes, exactly** (both sides
-  agree on this list):
+  `template`), looks up the recipient's email and language, renders, sends, and passes
+  `idempotencyKey` to Resend. Errors carry a body `{ "code": "…", "message": "…" }`, so a version
+  mismatch between the services is visible in logs. **Status codes, exactly** (both sides agree on
+  this list):
 
   | Code | Meaning | Sender does |
   | --- | --- | --- |
   | 2xx | sent | `sent` |
-  | 404, 410 | recipient gone (unknown, banned, deactivated) | `dead` |
-  | 409 | same idempotency key, different payload: a bug | `dead`, logged as an error |
-  | 422 | unknown template or bad `data` | `dead`, logged as an error |
-  | 401, 403 | token wrong (rotation, bad config) | retry; log an error and feed an alarm |
-  | 408, 429, 5xx, timeout, connection error | transient | retry (see *Sending a delivery*) |
+  | 410, or 404 with `code: recipient_unavailable` | recipient gone (unknown, banned, deactivated) | `dead` |
+  | 409 `idempotency_conflict` | same key, different payload: a bug | `dead`, logged as an error |
+  | 422 `unknown_template` / `invalid_data` | the services disagree on a template | `dead`, logged as an error |
+  | 404 without that code | the route itself is missing (deploy order, wrong base URL) | transient; log an error and feed an alarm |
+  | 401, 403 | token wrong (rotation, bad config) | transient; log an error and feed an alarm |
+  | 408, 429, 5xx, timeout, connection error | transient | transient (see *Failures and retries*) |
 - **`GET /internal/users/with-permission?permission=…&permission=…`** (same token) →
   `{ "userIds": [...] }`: users holding **all** the listed permissions, computed from
-  `statements.ts`, never from role names; banned or deactivated users left out. The worker asks
-  for two lists: the **full-scope audience** (`smallGroups:all` + `smallGroupReports:viewObservations`)
-  and the **observation holders** (`smallGroupReports:viewObservations` alone, for scoped
-  recipients, rule 23).
+  `statements.ts`, never from role names; banned or deactivated users left out. Used for the
+  **watcher list** only: `smallGroups:all` + `smallGroupReports:view` +
+  `smallGroupReports:viewObservations`, the full-scope readers of `conversation_group_ids`.
+- **`POST /internal/users/permissions`** (same token) body `{ "userIds": [...] }` (up to 500) →
+  `{ "users": { "u_abc": <perms> } }`, `<perms>` in the same shape as the JWT's `perms`. Unknown,
+  banned or deactivated users are absent. Used to run the API's own read check on each candidate
+  recipient (rule 23).
 - **No comment text and no member name in any email.** Only who wrote, which group, which report
   date, and a link.
 
@@ -297,12 +306,18 @@ For a `report_conversation.comment_added` event:
 - **A soft-deleted comment** (`deleted_at` set by the time the event is processed) gives no
   emails: the event is marked `processed` with no deliveries, as when the comment or conversation
   is gone.
-- **Current audience only (rule 23):** drop anyone not in the conversation's audience right now.
-  Users in the full-scope list pass. Anyone else must be in the group's scope (current leaders; for
-  a closed group, its leaders when it closed) **and** in the observation-holders list. Both lists
-  come from auth-server, fetched **once per sweep, before any claim, never inside a DB
-  transaction**, and reused for every event in that sweep. The fast path fetches them for its one
-  event, also before claiming.
+- **Current audience only (rule 23), one copy of the rule.** `access.py` gets a pure predicate,
+  `can_read_group_conversations(perms, scope, small_group_id)`, built from the existing pieces
+  (`smallGroupReports: view`; a full scope needs `viewObservations`; a scoped user needs to lead the
+  group, or have led it when it closed). `conversation_access`, `conversation_group_ids` and the
+  worker all call it. The worker builds each candidate's `SmallGroupScope` from
+  `members.user_id` the way the API does, gets their `perms` from
+  `POST /internal/users/permissions`, and drops anyone the predicate rejects. Watchers come from the
+  watcher list, which holds exactly the full-scope readers.
+- **No call inside a DB transaction.** For a batch of claimed events the worker reads the
+  candidates (read-only), makes **one** permissions call for all of them, then processes each
+  event in its own transaction. The watcher list is fetched once per sweep, before any claim. The
+  fast path does the same for its one event.
 - De-duplicate by user id; the reason that wins is `participant`, then `leader`, then `watcher`.
   Never the author. A watcher who unwatched the group is dropped as a watcher only (rule 21).
 - **The boundary runs one way:** the conversation code never asks about channel preferences. It
@@ -312,14 +327,18 @@ For a `report_conversation.comment_added` event:
   the hand-over becomes an outbox row too, never a network call inside the transaction.
 - **Throttle, atomic** (rule 20), in the same transaction that inserts the deliveries. Domain table
   `report_conversation_notify_state`: PK `(user_id, conversation_id)` (FK cascade to the
-  conversation), `last_notified_at`. Per recipient:
+  conversation), `last_notified_at`. **One statement for all of an event's recipients, sorted by
+  `user_id`**, so two events in the same conversation always lock rows in the same order and can't
+  deadlock:
   ```sql
-  INSERT INTO report_conversation_notify_state (user_id, conversation_id, last_notified_at)
-  VALUES (:user_id, :conversation_id, clock_timestamp())
+  INSERT INTO report_conversation_notify_state AS s (user_id, conversation_id, last_notified_at)
+  SELECT u, :conversation_id, clock_timestamp()
+  FROM unnest(CAST(:user_ids AS varchar[])) AS u
+  ORDER BY u
   ON CONFLICT (user_id, conversation_id) DO UPDATE SET last_notified_at = excluded.last_notified_at
-  WHERE report_conversation_notify_state.last_notified_at
-        <= coalesce((SELECT last_read_at FROM report_conversation_reads r
-                     WHERE r.user_id = :user_id AND r.conversation_id = :conversation_id),
+  WHERE s.last_notified_at
+        <= coalesce((SELECT r.last_read_at FROM report_conversation_reads r
+                     WHERE r.user_id = s.user_id AND r.conversation_id = s.conversation_id),
                     '-infinity')
   RETURNING user_id;
   ```
@@ -343,8 +362,10 @@ For a `report_conversation.comment_added` event:
   lives in membership-management. Same rows can later be relayed to SQS/EventBridge unchanged.
 - **No foreign keys** on events, so deleting a report doesn't cascade to them: a consumer that
   finds the comment or conversation gone marks the event `processed` with no deliveries.
-- **Claim columns** (both generic tables): `status`, `attempts`, `next_attempt_at`, `claim_token`
-  (uuid), `last_error` (short: status code or exception class, no PII). Statuses: events `pending
+- **Claim columns** (both generic tables): `status`, `attempts` (claims that ended in a crash,
+  hang or exception: the poison counter), `failures` (recorded failures of any kind: drives the
+  backoff), `next_attempt_at`, `claim_token` (uuid), `last_error` (short: status code, error
+  `code` or exception class, no PII). Statuses: events `pending
   | processing | processed | failed | dead | expired`; deliveries `pending | sending | sent | failed
   | dead | expired`. Each table has a partial index on `next_attempt_at` where status is pending,
   failed or in progress.
@@ -353,9 +374,8 @@ For a `report_conversation.comment_added` event:
 
 - **Comment transaction:** insert the comment and one `outbox_events` row (`next_attempt_at = now()
   + 60 s`, so the fast path has a head start). Nothing else, no calls.
-- **Dependencies first, then claim.** A sweep fetches the two audience lists **before** claiming any
-  event. If that fails, it claims no events this sweep, so an auth-server outage spends no
-  attempts. The retry budget is for poison messages, not for an outage of something rows depend on.
+- **Dependencies first, then claim.** A sweep fetches the watcher list **before** claiming
+  anything. If auth-server can't be reached, it claims nothing from **either** table this sweep.
 - **Processing an event**, one transaction whose **first statement is the fence**:
   ```sql
   UPDATE outbox_events SET status = 'processed', processed_at = now()
@@ -366,26 +386,36 @@ For a `report_conversation.comment_added` event:
   other task can work it while this transaction runs. Then: the consumer (soft-delete check,
   recipients, audience, unwatch, throttle), then `notifications/` (preferences, insert deliveries
   `ON CONFLICT DO NOTHING`), then commit. Any error rolls back everything, throttle rows included,
-  and the event is retried later.
+  fence update included. **The outcome is then recorded in a second short transaction**, fenced by
+  the claim token: `status = 'failed'`, `last_error`, `failures + 1`, `next_attempt_at` from the
+  backoff. The attempt stays counted: an exception here is a bug or a DB error, not an outage
+  (the permissions call ran before the transaction; if *it* fails, that's a transient failure).
 - **Sending a delivery:** `Sender.send(payload, idempotency key)`, then act on the status code
   table above. The idempotency key is `mm:notification-delivery:{id}`; the payload never changes
   after insert, as Resend requires (same key + different payload = rejected).
-- **A transient error stops the batch** (connection error, timeout, 5xx, 401/403, 408, 429): that
-  delivery is `failed` with its attempt counted. The batch's **untried** rows are released, fenced
-  by their claim token: `status = 'pending'`, `attempts = attempts - 1`, `next_attempt_at`
-  unchanged. Only rows actually tried use up an attempt. **Circuit breaker:** after 3 sweeps in a
-  row that stopped on a transient error, skip claiming deliveries for the next sweep.
 - **Claiming** (both tables): `SELECT … FOR UPDATE SKIP LOCKED`, **batch of 10**, and in the same
   statement set the in-progress status, a new `claim_token`, **`attempts = attempts + 1`** (so a
   crash or hang still counts) and `next_attempt_at = now() + lease`. A row claimed with `attempts`
   already at 5 goes to `dead` instead of being worked.
+- **Failures and retries.** Three kinds of outcome:
+  - **Transient** (dependency trouble: connection error, timeout, 5xx, 408, 429, 401/403, a bare
+    404, or the permissions call failing): **give the attempt back** (`attempts - 1`), `failures +
+    1`, `status = 'failed'`, backoff by `failures`. Transient failures never make a row `dead`; they
+    retry until the 24 h expiry. A transient error while sending also **stops the batch**: the
+    untried rows are released (fenced, `status = 'pending'`, `attempts - 1`, `next_attempt_at`
+    unchanged).
+  - **Exception** (a bug or a DB error in our code): `failures + 1`, attempt kept, backoff by
+    `failures`.
+  - **Permanent** (the `dead` codes in the table): `dead` at once.
+  - So `dead` = a permanent code, or the poison cap (5 claims that crashed, hung or raised).
+    `expired` = still not done after 24 h, e.g. an outage longer than that.
 - **Lease rule:** `lease > batch × per-item timeout + margin`. With a 5 s sender timeout, batch 10 and
   a 2-minute lease: 50 s + margin, fine. Changing either number means re-checking the rule.
 - **Fenced writes:** every update after a claim (finish, fail, release) is `WHERE id = :id AND
   claim_token = :token`. Zero rows updated = the lease was lost and someone else owns the row: log
   it and undo nothing else. For events this is the first statement of the processing transaction
   (above), so a lost lease rolls back the whole transaction.
-- **Backoff** after a failure: 1, 5, 15, 60 minutes, by `attempts`.
+- **Backoff** by `failures`: 1, 5, 15, 60 minutes, then every 60 minutes until the expiry.
 - **Expiry:** an event or delivery still not done **24 hours** after `created_at` becomes
   `expired` instead of being worked (no wave of old emails after an outage; 24 h is also how long
   Resend keeps idempotency keys).
@@ -405,8 +435,8 @@ For a `report_conversation.comment_added` event:
 - **Fast path, best-effort:** the comment route adds a `BackgroundTasks` task that processes that one
   event and sends its deliveries right after the response, with its own DB session, through the
   same claim code (so it never races the sweeper). Nothing depends on it: without it, the sweep
-  picks the event up within about 2 minutes. It has no sweep cache: it fetches the audience lists
-  for its one event before claiming it. A separate worker can later be woken with `LISTEN/NOTIFY`
+  picks the event up within about 2 minutes. It has no sweep cache: it fetches the watcher list
+  before claiming its one event, and that event's candidates' permissions before processing it. A separate worker can later be woken with `LISTEN/NOTIFY`
   instead.
 - **Monitoring:** each run logs, and exposes for the Phase 9 alarms, the **age of the oldest
   pending row** in each table and the count of `dead` rows.
@@ -439,27 +469,35 @@ session, as usual) before that repo's Part 2 work starts, next to the section-th
 
 - **auth-server** (`REPORT-CONVERSATIONS-EMAIL-HANDOFF.md`): replace
   `POST /internal/notifications/report-conversation` with the generic `POST /internal/notifications`
-  (template key, per-template zod schema, the exact status-code table, `idempotencyKey` passed to
-  Resend). Add a stage for `GET /internal/users/with-permission` (several permissions, all must
-  hold). Templates gain `reason = watcher` (its "why" line and unwatch hint) and a "new" variant for
+  (template key, per-template zod schema, the exact status-code table with error `code`s,
+  `idempotencyKey` passed to Resend). Add a stage for the two user routes:
+  `GET /internal/users/with-permission` (several permissions, all must hold) and
+  `POST /internal/users/permissions` (perms per user, JWT shape). Templates gain `reason = watcher` (its "why" line and unwatch hint) and a "new" variant for
   `startedBy = leaders` (the title can't say "An elder"). Copy en/es on the canvas first.
 - **membership-management** (`REPORT-CONVERSATIONS-EMAIL-API-HANDOFF.md`): rework it around this
-  section. Stage 1: config (`EMBEDDED_WORKER`), the five tables. Stage 2: the comment transaction
-  inserts only the event; the report-conversations consumer (soft-delete check, audience,
-  recipients, unwatch, atomic throttle) and `notifications/` (preferences, deliveries), one way
-  only. Stage 3: the auth-server client, both calls (`with-permission` and the `Sender`), mapping
-  the status-code table. Stage 4: claiming (batch, attempts at claim, claim token), the fence as
-  the first statement of event processing, sending, releasing untried rows on a transient error,
-  the circuit breaker, the fast path. Stage 5: the worker entry point, embedded start with its
-  `CapacityLimiter`, SIGTERM, audience lists fetched before claiming, expiry, monitoring, purge.
-  Stage 6: preference and watch routes. It depends on auth-server's new route stage as well as its
-  sending stage. Hand-check list: a leader starts a thread → every watching elder gets one email;
-  an elder who unwatched doesn't, unless they commented; **two leaders reply at the same moment →
-  one email**; a leader who stepped down, or whose role lost the observations permission, gets
-  nothing; a comment deleted before processing → no email; kill the worker mid-batch → no duplicate
-  email and `attempts` went up; **auth-server down for 2 hours → nothing goes `dead`, and
-  everything sends once it's back**; a wrong internal token for a few minutes → retries, an error
-  logged, nothing `dead`; an event older than 24 h → `expired`.
+  section. Stage 1: config (`EMBEDDED_WORKER`), the five tables (claim columns with `attempts` and
+  `failures`). Stage 2: extract `can_read_group_conversations` in `access.py` and make
+  `conversation_access` / `conversation_group_ids` call it (behaviour unchanged, Part 1 routes
+  re-tested); the comment transaction inserts only the event; the report-conversations consumer
+  (soft-delete check, audience through the shared predicate, recipients, unwatch, sorted atomic
+  throttle) and `notifications/` (preferences, deliveries), one way only. Stage 3: the auth-server
+  client, all three calls (`with-permission`, `permissions`, the `Sender`), mapping the
+  status-code table and error `code`s. Stage 4: claiming (batch, attempts at claim, claim token),
+  the fence as the first statement of event processing, recording a failed processing outcome in
+  a second transaction, sending, the three outcome kinds (transient gives the attempt back),
+  releasing untried rows, the fast path. Stage 5: the worker entry point, embedded start with its
+  `CapacityLimiter`, SIGTERM, the reachability gate before claiming either table, expiry,
+  monitoring, purge. Stage 6: preference and watch routes. It depends on auth-server's new route
+  stages as well as its sending stage. Hand-check list: **an elder starts a thread → the group's
+  leader gets the email** (the main case); a leader starts a thread → every watching elder gets one
+  email; an elder who unwatched doesn't, unless they commented; **two leaders reply at the same
+  moment → one email**; a leader who stepped down, or whose role lost `smallGroupReports: view`,
+  gets nothing; a comment deleted before processing → no email; kill the worker mid-batch → no
+  duplicate email and `attempts` went up; **auth-server down for 2 hours → nothing goes `dead`, and
+  everything sends once it's back**; auth-server up but Resend returning 503 for 2 hours → the
+  same; a wrong internal token, or the route not deployed yet (bare 404) → retries, an error
+  logged, nothing `dead`; a processing exception → `failed` with `last_error` set; an event older
+  than 24 h → `expired`.
 - **staff-app** (`REPORT-CONVERSATIONS-EMAIL.md`): stage 1 adds the watched-groups list in My
   profile and the Watching switch on `/groups/[id]` (only for the full-scope audience and while
   emails are on); stage 2's panel note for leaders' side changes from "No email is sent" to "Elders
