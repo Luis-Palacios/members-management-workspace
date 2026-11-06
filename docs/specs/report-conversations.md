@@ -23,6 +23,11 @@ was decided before Part 2. It's in-app only and runs as usual (not learning mode
 before or alongside Part 2.
 *Update (Nov 5, 2026):* **Part 1c is implemented and merged** in both repos (membership-management
 PR #69, no migration; staff-app PR #105).
+*Update (Nov 6, 2026):* **Part 1d, a period filter on the Resolved tab** (rule 15), so the tab stays
+short as resolved threads pile up. In-app only, runs as usual (not learning mode), no migration;
+can ship before or alongside Part 2.
+*Update (Nov 6, 2026):* **Part 1d is implemented and merged** in both repos (membership-management
+PR #70, no migration; staff-app PR #106).
 
 - **Depends on:** `small-group-reports.md` (rule 9 as changed in Oct 2026: the group's leaders see
   observations), `small-group-leader-access.md` (scope), `roles-and-permissions.md`.
@@ -34,7 +39,9 @@ PR #69, no migration; staff-app PR #105).
   `staff-app/docs/design/REPORT-CONVERSATIONS.md`. Part 1b (done):
   `membership-management/docs/UNREAD-TAB-API-HANDOFF.md`, `staff-app/docs/design/UNREAD-TAB.md`
   (branch `unread-tab`). Part 1c (done): `membership-management/docs/UNREAD-DOT-API-HANDOFF.md`,
-  `staff-app/docs/design/UNREAD-DOT.md` (branch `unread-dot`). Part 2 (written once Part 1 is on
+  `staff-app/docs/design/UNREAD-DOT.md` (branch `unread-dot`). Part 1d (done):
+  `membership-management/docs/RESOLVED-PERIOD-API-HANDOFF.md`,
+  `staff-app/docs/design/RESOLVED-PERIOD.md` (branch `resolved-period`). Part 2 (written once Part 1 is on
   `main`):
   `auth-server/docs/REPORT-CONVERSATIONS-EMAIL-HANDOFF.md`,
   `membership-management/docs/REPORT-CONVERSATIONS-EMAIL-API-HANDOFF.md`,
@@ -76,6 +83,13 @@ Part 1c, unread dot (in-app only, runs as usual, not learning mode; can ship bef
 **Done** (Nov 2026), both steps merged:
 1c. `membership-management`: `hasUnread` on `GET /report-conversations/counts` (rule 17).
 2c. `staff-app`: the dot on the sidebar's Conversations item, shown only while the gold count is 0.
+
+Part 1d, Resolved period filter (in-app only, runs as usual, not learning mode; can ship before
+Part 2; no migration). **Done** (Nov 2026), both steps merged:
+1d. `membership-management`: optional `resolvedSince` on `GET /report-conversations`, only with
+    `tab=resolved` (rule 15).
+2d. `staff-app`: the *Resolved in* select on the *Resolved* tab, `?period=` in the URL, the
+    filtered-count line and the period-aware empty state.
 
 Part 2 (after Part 1 is on `main`):
 3. `auth-server`: recipient language; templates (en/es) including the watcher variants; the generic
@@ -148,6 +162,29 @@ One repo per Claude Code session, as usual.
 15. **Elders and admins see every group; leaders see their scope.** Tabs: *Needs my reply*, *Open*
     (includes the first), *Resolved*. Optional group filter. Newest activity first. Each row opens
     the report with that person's panel.
+    *Changed Nov 6, 2026 (Part 1d):* the *Resolved* tab gets a **period filter** on **when the
+    thread was resolved** (`resolved_at`), so the tab stays short as threads pile up (paging
+    already keeps each request small; this is about finding things). Options: **Last 30 days**
+    (default), **Last 3 months**, **This year**, **All time**.
+    - Shown only on the *Resolved* tab, next to the group filter, same select style, label
+      *Resolved in* (es: *Resueltas en*). Options es: *Últimos 30 días*, *Últimos 3 meses*,
+      *Este año*, *Todo el tiempo*.
+    - In the URL as `?period=30d|3m|year|all`, like `?group=`. The default (`30d`) is left out of
+      the URL; an unknown value is the default. Switching to another tab drops `period`; the group
+      filter is kept as today.
+    - The period becomes an instant in **staff-app**, so the API stays generic: *Last 30 days* =
+      now − 30 days; *Last 3 months* = now − 3 calendar months; *This year* = 1 January 00:00 in
+      `CHURCH_TIMEZONE`; *All time* = no filter. "Show more" sends the same instant as the first
+      page (computed once per page load), so pages never shift.
+    - **The tab's count stays all time** (the counts are one query for all four tabs and don't
+      take the group filter either). The filtered number is a line above the rows:
+      "{count} resolved in the last 30 days" / "…in the last 3 months" / "…this year", and
+      "{count} resolved" for *All time* (es: "{count} resueltas en los últimos 30 días", …), from
+      the response's `total`. Hidden when the list is empty.
+    - Empty with a period other than *All time*: "Nothing resolved in the last 30 days." (or the
+      period's phrase) with a *See all time* link (`?tab=resolved&period=all`, group kept). Empty
+      on *All time*: the existing `emptyOther` text.
+    - Order stays newest activity first (`last_comment_at desc`), like every tab.
 16. **Dashboards** show up to 3 *Needs my reply* rows at the top (leader dashboard and the elder
     Groups dashboard), hidden when there are none.
 17. **Unread tab** (Part 1b, Nov 2026): a fourth tab, *Unread*, lists the threads that are unread
@@ -245,7 +282,7 @@ Routes (camelCase, `CamelModel`):
 | `DELETE /report-conversation-comments/{id}` | Soft delete own (rule 9) |
 | `POST /report-conversations/{id}/resolve` · `/reopen` | Rule 10 |
 | `POST /report-conversations/{id}/read` | Rule 11 |
-| `GET /report-conversations?tab=reply\|unread\|open\|resolved&smallGroupId=&page=` | Inbox rows + the tab counts (`unread` added in Part 1b, rule 17) |
+| `GET /report-conversations?tab=reply\|unread\|open\|resolved&smallGroupId=&limit=&offset=&resolvedSince=` | Inbox rows + the tab counts (`unread` added in Part 1b, rule 17). `resolvedSince` (Part 1d, rule 15): an ISO 8601 instant **with an offset** (naive → 422); keeps threads with `resolved_at >= resolvedSince`; filters `items` and `total`, **never `counts`**; 422 with any tab other than `resolved` |
 | `GET /report-conversations/counts` | `{ needsMyReply, hasUnread }` for the sidebar badge and dot (cheap, called per page; `hasUnread` is an `EXISTS` over the *Unread* filter, not a count; added in Part 1c, rule 17) |
 | `POST /report-conversations/read-all?smallGroupId=` | Part 1b, rule 17: mark every thread in the caller's view (and filter) read; one upsert, returns `{ marked }` |
 
@@ -259,7 +296,8 @@ Errors the staff app tells apart (status + `detail`, never shown raw): 409 `Link
   sheet below). Same panel for 0 or N comments.
 - `/conversations`: the inbox, a top-level nav item visible when the user can see observations or
   leads a group; badge from `/report-conversations/counts`: the gold `needsMyReply` number, or,
-  when it's 0, the unread dot from `hasUnread` (Part 1c, rule 17).
+  when it's 0, the unread dot from `hasUnread` (Part 1c, rule 17). On the *Resolved* tab, the
+  *Resolved in* period filter, its count line and empty state (Part 1d, rule 15).
 - Dashboard blocks reuse the inbox route with `tab=reply` and a limit of 3.
 - Everything shown on the canvas boards, light/dark, en/es, 1440/1024/390.
 
