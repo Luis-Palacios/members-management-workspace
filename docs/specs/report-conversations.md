@@ -397,8 +397,8 @@ For a `report_conversation.comment_added` event:
   finds the comment or conversation gone marks the event `processed` with no deliveries.
 - **Claim columns** (both generic tables): `status`, `attempts` (claims that ended in a crash,
   hang or exception: the poison counter), `failures` (recorded failures of any kind: drives the
-  backoff), `next_attempt_at`, `claim_token` (uuid), `last_error` (short: status code, error
-  `code` or exception class, no PII). Statuses: events `pending
+  backoff), `next_attempt_at`, `claim_token` (uuid), `expires_at` (see *Expiry*), `last_error`
+  (short: status code, error `code` or exception class, no PII). Statuses: events `pending
   | processing | processed | failed | dead | expired`; deliveries `pending | sending | sent | failed
   | dead | expired | suppressed`. Each table has a partial index on `next_attempt_at` where status is pending,
   failed or in progress.
@@ -453,9 +453,14 @@ For a `report_conversation.comment_added` event:
   it and undo nothing else. For events this is the first statement of the processing transaction
   (above), so a lost lease rolls back the whole transaction.
 - **Backoff** by `failures`: 1, 5, 15, 60 minutes, then every 60 minutes until the expiry.
-- **Expiry:** an event or delivery still not done **24 hours** after `created_at` becomes
-  `expired` instead of being worked (no wave of old emails after an outage; 24 h is also how long
-  Resend keeps idempotency keys).
+- **Expiry: one deadline per comment, 24 hours.** An event gets `expires_at = created_at + 24 h`.
+  Its deliveries **inherit that same `expires_at`** (the domain passes it to `notifications/` as a
+  "not after" time with each request), so the window doesn't restart when deliveries are created:
+  an event processed just before its deadline can't produce an email about a comment almost 48 h
+  old. An event or delivery past its `expires_at` becomes `expired` instead of being worked, checked
+  at claim and again right before sending (no wave of old emails after an outage). Every send
+  happens within 24 h of the delivery's first send, so it stays inside Resend's 24 h idempotency
+  window.
 
 ### The worker
 
@@ -477,8 +482,10 @@ For a `report_conversation.comment_added` event:
   it. A separate worker can later be woken with `LISTEN/NOTIFY` instead.
 - **Monitoring:** each run logs, and exposes for the Phase 9 alarms, the **age of the oldest
   pending row** in each table and the count of `dead` rows.
-- **Retention:** `run_once()` purges `processed`/`expired` events after 30 days and
-  `sent`/`dead`/`expired`/`suppressed` deliveries after 90 days.
+- **Retention:** `run_once()` purges `processed`/`expired`/`dead` events after 30 days and
+  `sent`/`dead`/`expired`/`suppressed` deliveries after 90 days. Every final status is purged, so no
+  row stays forever; `dead` rows are counted and logged when they appear (*Monitoring*), which is
+  when someone looks at them.
 
 ### Settings, language, switches
 
@@ -542,7 +549,8 @@ session, as usual) before that repo's Part 2 work starts, next to the section-th
   logged, nothing `dead`; an email queued, then "Conversation emails" turned off before it sends →
   `suppressed`, no email; a batch with more than 500 candidates → permissions fetched in chunks,
   nobody dropped; a processing exception → `failed` with `last_error` set; an event older
-  than 24 h → `expired`.
+  than 24 h → `expired`; an event processed 23 h after its comment whose send then keeps failing →
+  the delivery expires at the comment's 24 h mark, not 24 h later.
 - **staff-app** (`REPORT-CONVERSATIONS-EMAIL.md`): stage 1 adds the watched-groups list in My
   profile and the Watching switch on `/groups/[id]` (only for the full-scope audience and while
   emails are on); stage 2's panel note for leaders' side changes from "No email is sent" to "Elders
