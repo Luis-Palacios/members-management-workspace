@@ -26,6 +26,8 @@ PR #69, no migration; staff-app PR #105).
 *Update (Nov 6, 2026):* **Part 1d, a period filter on the Resolved tab** (rule 15), so the tab stays
 short as resolved threads pile up. In-app only, runs as usual (not learning mode), no migration;
 can ship before or alongside Part 2.
+*Update (Nov 6, 2026):* **Part 1d is implemented and merged** in both repos (membership-management
+PR #70, no migration; staff-app PR #106).
 
 - **Depends on:** `small-group-reports.md` (rule 9 as changed in Oct 2026: the group's leaders see
   observations), `small-group-leader-access.md` (scope), `roles-and-permissions.md`.
@@ -37,10 +39,9 @@ can ship before or alongside Part 2.
   `staff-app/docs/design/REPORT-CONVERSATIONS.md`. Part 1b (done):
   `membership-management/docs/UNREAD-TAB-API-HANDOFF.md`, `staff-app/docs/design/UNREAD-TAB.md`
   (branch `unread-tab`). Part 1c (done): `membership-management/docs/UNREAD-DOT-API-HANDOFF.md`,
-  `staff-app/docs/design/UNREAD-DOT.md` (branch `unread-dot`). Part 1d:
+  `staff-app/docs/design/UNREAD-DOT.md` (branch `unread-dot`). Part 1d (done):
   `membership-management/docs/RESOLVED-PERIOD-API-HANDOFF.md`,
-  `staff-app/docs/design/RESOLVED-PERIOD.md` (branch `resolved-period`, each written at the start
-  of that repo's session). Part 2 (written once Part 1 is on
+  `staff-app/docs/design/RESOLVED-PERIOD.md` (branch `resolved-period`). Part 2 (written once Part 1 is on
   `main`):
   `auth-server/docs/REPORT-CONVERSATIONS-EMAIL-HANDOFF.md`,
   `membership-management/docs/REPORT-CONVERSATIONS-EMAIL-API-HANDOFF.md`,
@@ -84,7 +85,7 @@ Part 1c, unread dot (in-app only, runs as usual, not learning mode; can ship bef
 2c. `staff-app`: the dot on the sidebar's Conversations item, shown only while the gold count is 0.
 
 Part 1d, Resolved period filter (in-app only, runs as usual, not learning mode; can ship before
-Part 2; no migration):
+Part 2; no migration). **Done** (Nov 2026), both steps merged:
 1d. `membership-management`: optional `resolvedSince` on `GET /report-conversations`, only with
     `tab=resolved` (rule 15).
 2d. `staff-app`: the *Resolved in* select on the *Resolved* tab, `?period=` in the URL, the
