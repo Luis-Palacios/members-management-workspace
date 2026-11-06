@@ -14,6 +14,10 @@ Part 2 handoffs need the changes listed in
 [Changes to the Part 2 handoffs](#changes-to-the-part-2-handoffs-nov-2026) before work begins.
 *Update (Nov 5, 2026):* **Part 1b is implemented and merged** in both repos (membership-management
 PR #67, migration `096025ed70a6`; staff-app PR #104).
+*Update (Nov 5, 2026):* `prayer-follow-up.md` is **implemented and merged** too (late October
+2026), so **Part 2 is next**. None of the three Part 2 handoffs has been updated yet: apply the
+[Nov 2026 changes](#changes-to-the-part-2-handoffs-nov-2026) and `prayer-follow-up.md`'s
+*Changes for report conversations Part 2* in each repo first, auth-server first.
 
 - **Depends on:** `small-group-reports.md` (rule 9 as changed in Oct 2026: the group's leaders see
   observations), `small-group-leader-access.md` (scope), `roles-and-permissions.md`.
@@ -85,7 +89,7 @@ One repo per Claude Code session, as usual.
    can be added later (`{ "type": "section", "key": "followUp" }`) without changing the client.
    If sections come, "for the elders to follow up" goes first.
    *Update (Oct 2026):* section threads are specified in `prayer-follow-up.md` (rule 14), for all
-   three sections.
+   three sections, and shipped with it (late Oct 2026).
 
 ### Who sees and writes
 
@@ -604,7 +608,7 @@ session, as usual) before that repo's Part 2 work starts, next to the section-th
 
 ## Not in this spec
 
-- Threads on report sections (rule 2).
+- Threads on report sections (rule 2): shipped separately in `prayer-follow-up.md`.
 - Member detail conversation history across reports (v2).
 - Push notifications through the PWA (v2; the outbox is where they'd plug in).
 - @mentions, attachments, reactions.
