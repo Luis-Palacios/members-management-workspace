@@ -21,6 +21,8 @@ PR #67, migration `096025ed70a6`; staff-app PR #104).
 *Update (Nov 5, 2026):* **Part 1c, an unread dot** on the sidebar's Conversations item (rule 17),
 was decided before Part 2. It's in-app only and runs as usual (not learning mode), so it can ship
 before or alongside Part 2.
+*Update (Nov 5, 2026):* **Part 1c is implemented and merged** in both repos (membership-management
+PR #69, no migration; staff-app PR #105).
 
 - **Depends on:** `small-group-reports.md` (rule 9 as changed in Oct 2026: the group's leaders see
   observations), `small-group-leader-access.md` (scope), `roles-and-permissions.md`.
@@ -31,7 +33,7 @@ before or alongside Part 2.
   `membership-management/docs/REPORT-CONVERSATIONS-API-HANDOFF.md`,
   `staff-app/docs/design/REPORT-CONVERSATIONS.md`. Part 1b (done):
   `membership-management/docs/UNREAD-TAB-API-HANDOFF.md`, `staff-app/docs/design/UNREAD-TAB.md`
-  (branch `unread-tab`). Part 1c (to write): `membership-management/docs/UNREAD-DOT-API-HANDOFF.md`,
+  (branch `unread-tab`). Part 1c (done): `membership-management/docs/UNREAD-DOT-API-HANDOFF.md`,
   `staff-app/docs/design/UNREAD-DOT.md` (branch `unread-dot`). Part 2 (written once Part 1 is on
   `main`):
   `auth-server/docs/REPORT-CONVERSATIONS-EMAIL-HANDOFF.md`,
@@ -70,7 +72,8 @@ Part 1b, Unread tab (in-app only, runs as usual, not learning mode; can ship bef
     SQL); `report_conversations.last_activity_at` (migration, backfilled); *Mark all read*.
 2b. `staff-app`: the *Unread* tab on `/conversations` and its *Mark all read* action.
 
-Part 1c, unread dot (in-app only, runs as usual, not learning mode; can ship before Part 2):
+Part 1c, unread dot (in-app only, runs as usual, not learning mode; can ship before Part 2).
+**Done** (Nov 2026), both steps merged:
 1c. `membership-management`: `hasUnread` on `GET /report-conversations/counts` (rule 17).
 2c. `staff-app`: the dot on the sidebar's Conversations item, shown only while the gold count is 0.
 
