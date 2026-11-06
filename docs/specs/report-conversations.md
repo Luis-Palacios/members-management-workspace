@@ -53,7 +53,7 @@ Part 1:
 
 Part 1b, Unread tab (in-app only, runs as usual, not learning mode; can ship before Part 2):
 1b. `membership-management`: `tab=unread` on the inbox route and an `unread` tab count (filtered in
-    SQL); *Mark all read*.
+    SQL); `report_conversations.last_activity_at` (migration, backfilled); *Mark all read*.
 2b. `staff-app`: the *Unread* tab on `/conversations` and its *Mark all read* action.
 
 Part 2 (after Part 1 is on `main`):
@@ -138,9 +138,14 @@ One repo per Claude Code session, as usual.
     Python `is_unread` helper), so paging and counts agree.
     **Mark all read**: on launch, and whenever someone gains access (a new elder, a new leader),
     *Unread* lists every thread they never opened. *Mark all read* on the tab marks every thread in
-    the caller's view (and the group filter, when one is set) read up to its latest comment:
-    `last_read_at = greatest(existing, conversation.last_comment_at)`, not `now()`, so a comment
+    the caller's view (and the group filter, when one is set) read up to its latest activity:
+    `last_read_at = greatest(existing, conversation.last_activity_at)`, not `now()`, so a comment
     that lands while the user is clicking stays unread.
+    `last_activity_at` is the newest comment's `created_at` **counting deleted ones**: set on every
+    new comment and never moved back. `last_comment_at` does move back when the newest comment is
+    deleted (it points at the newest live one), so using it here would leave the read mark behind
+    an email already sent about the deleted comment and keep the throttle (rule 20) closed.
+    Reading past a deleted comment hides nothing: only live comments count as unread.
 
 ### Watching groups (Part 2, Nov 2026)
 
@@ -196,6 +201,7 @@ Tables (migration on branch `report-conversations`; names can be adjusted in the
 
 `user_id` columns are string references to auth-server users, no foreign key (workspace rule).
 `last_comment_at` / `last_comment_side` are denormalised on write so the inbox query stays simple.
+Part 1b adds `last_activity_at` (rule 17): like `last_comment_at`, but deletes never move it back.
 
 Routes (camelCase, `CamelModel`):
 
@@ -274,7 +280,16 @@ membership-management                                                           
   `prayer` | `praise` | `followUp`), `startedBy` (`elders` | `leaders`, for the "new" title).
   auth-server **validates `data` against a schema per template** (a zod union keyed on
   `template`), looks up the recipient's email and language, renders, sends, and passes
-  `idempotencyKey` to Resend. Errors carry a body `{ "code": "…", "message": "…" }`, so a version
+  `idempotencyKey` to Resend.
+  **Rendered once per key.** Before its first call to Resend, auth-server stores what it is about to
+  send under the idempotency key (table `notification_sends`: `idempotency_key` PK, the resolved
+  address, locale, the exact Resend request body, `resend_email_id`, `status`, `created_at`). A
+  retry with the same key reuses that stored request byte for byte, instead of looking up the email
+  and locale and rendering again. Otherwise a change of address, language or template between two
+  attempts would reuse the key with different content, which Resend rejects. If the stored row is
+  already `sent`, auth-server returns 2xx without calling Resend. Rows are purged after 48 h, longer
+  than Resend keeps keys (24 h) and than a delivery lives (rule: *Expiry*). A retry within that time
+  goes to the address resolved on the first attempt; that's the accepted trade-off. Errors carry a body `{ "code": "…", "message": "…" }`, so a version
   mismatch between the services is visible in logs. **Status codes, exactly** (both sides agree on
   this list):
 
@@ -514,7 +529,8 @@ session, as usual) before that repo's Part 2 work starts, next to the section-th
 - **auth-server** (`REPORT-CONVERSATIONS-EMAIL-HANDOFF.md`): replace
   `POST /internal/notifications/report-conversation` with the generic `POST /internal/notifications`
   (template key, per-template zod schema, the exact status-code table with error `code`s,
-  `idempotencyKey` passed to Resend). Add a stage for the two user routes:
+  `idempotencyKey` passed to Resend), plus the `notification_sends` table so each key is rendered
+  once and retries resend the stored request. Add a stage for the two user routes:
   `GET /internal/users/with-permission` (several permissions, all must hold) and
   `POST /internal/users/permissions` (perms per user, JWT shape). Accept `?guest=` paths as well as
   `?person=` and `?section=`. Templates gain `reason = watcher` (its "why" line and unwatch hint)
@@ -542,7 +558,8 @@ session, as usual) before that repo's Part 2 work starts, next to the section-th
   moment → one email**; a leader who stepped down, or whose role lost `smallGroupReports: view`,
   gets nothing; a comment deleted before processing → no email; **the user opens the thread
   before the worker runs → no email**; **after *Mark all read*, the next leader comment → an
-  email**; an email link to a guest's row opens that guest's panel; kill the worker mid-batch → no
+  email**; the same after the newest comment (the one emailed about) was deleted before *Mark all
+  read*; an email link to a guest's row opens that guest's panel; kill the worker mid-batch → no
   duplicate email and `attempts` went up; **auth-server down for 2 hours → nothing goes `dead`, and
   everything sends once it's back**; auth-server up but Resend returning 503 for 2 hours → the
   same; a wrong internal token, or the route not deployed yet (bare 404) → retries, an error
