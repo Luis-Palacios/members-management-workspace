@@ -12,6 +12,8 @@ groups** (rules 18–23, elders and admins get emails for leaders' comments in t
 and an **event-first, worker-based** Part 2 design were added before Part 2 started. The existing
 Part 2 handoffs need the changes listed in
 [Changes to the Part 2 handoffs](#changes-to-the-part-2-handoffs-nov-2026) before work begins.
+*Update (Nov 5, 2026):* **Part 1b is implemented and merged** in both repos (membership-management
+PR #67, migration `096025ed70a6`; staff-app PR #104).
 
 - **Depends on:** `small-group-reports.md` (rule 9 as changed in Oct 2026: the group's leaders see
   observations), `small-group-leader-access.md` (scope), `roles-and-permissions.md`.
@@ -20,7 +22,9 @@ Part 2 handoffs need the changes listed in
   Report detail boards, Sidebar and both dashboards on other pages were updated too.
 - **Repo handoffs (the work, stage by stage):** Part 1:
   `membership-management/docs/REPORT-CONVERSATIONS-API-HANDOFF.md`,
-  `staff-app/docs/design/REPORT-CONVERSATIONS.md`. Part 2 (written once Part 1 is on `main`):
+  `staff-app/docs/design/REPORT-CONVERSATIONS.md`. Part 1b (done):
+  `membership-management/docs/UNREAD-TAB-API-HANDOFF.md`, `staff-app/docs/design/UNREAD-TAB.md`
+  (branch `unread-tab`). Part 2 (written once Part 1 is on `main`):
   `auth-server/docs/REPORT-CONVERSATIONS-EMAIL-HANDOFF.md`,
   `membership-management/docs/REPORT-CONVERSATIONS-EMAIL-API-HANDOFF.md`,
   `staff-app/docs/design/REPORT-CONVERSATIONS-EMAIL.md`. Part 1 is merged (Oct 2026).
@@ -51,7 +55,8 @@ Part 1:
 2. `staff-app`: Report detail column, summary and panel/sheet; Conversations page; sidebar badge;
    dashboard blocks; delete-report dialog copy.
 
-Part 1b, Unread tab (in-app only, runs as usual, not learning mode; can ship before Part 2):
+Part 1b, Unread tab (in-app only, runs as usual, not learning mode; can ship before Part 2).
+**Done** (Nov 2026), both steps merged:
 1b. `membership-management`: `tab=unread` on the inbox route and an `unread` tab count (filtered in
     SQL); `report_conversations.last_activity_at` (migration, backfilled); *Mark all read*.
 2b. `staff-app`: the *Unread* tab on `/conversations` and its *Mark all read* action.
