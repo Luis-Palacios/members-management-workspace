@@ -7,7 +7,9 @@ WhatsApp message, and start a conversation about one of those texts. The same wo
 other two Dashboard items: **Groups → Report status** and **Staff → Applications & access**.
 
 **Status:** designed (desktop, 1024, 390, light and dark, English and Spanish, elder and leader),
-October 2026. Not started in any repo.
+October 2026. **Implemented and merged** in both repos (late October 2026): every stage is ticked
+in `membership-management/docs/PRAYER-FOLLOW-UP-API-HANDOFF.md` and
+`staff-app/docs/design/PRAYER-FOLLOW-UP.md`.
 
 - **Depends on:** `small-group-reports.md` (the three texts, rule 12 church week),
   `groups-dashboard.md` (the Dashboard submenu, the week rules), `report-conversations.md` Part 1
@@ -29,14 +31,14 @@ October 2026. Not started in any repo.
 
 ## Before email (Part 2 of report conversations)
 
-Report conversations **Part 2 (email notifications) is still pending, and stays pending until this
-feature is on `main`.** It's a learning exercise to be worked slowly, one change at a time (see
-`report-conversations.md`), and it's next after this one.
+This feature is on `main`, so report conversations **Part 2 (email notifications) is next**. It's a
+learning exercise to be worked slowly, one change at a time (see `report-conversations.md`).
 
 Nothing here sends email or touches the outbox design. But section threads change three things Part
 2's handoffs assumed (every thread is about a person, links use `?person=`). They're listed in
 [Changes for Part 2](#changes-for-report-conversations-part-2) below, and each Part 2 handoff has a
-note pointing here. **Update those handoffs when this feature lands, before Part 2 starts.**
+note pointing here. **Those handoffs aren't updated yet (Nov 5, 2026): apply these changes, with the
+Nov 2026 ones in `report-conversations.md`, before Part 2 starts in each repo.**
 
 ## Implementation order
 
@@ -216,7 +218,7 @@ key), plus the existing conversation errors.
 
 ## Changes for report conversations Part 2
 
-Apply to the three Part 2 handoffs when this feature is on `main`, before Part 2 starts:
+Apply to the three Part 2 handoffs before Part 2 starts (this feature is on `main`; not applied yet):
 
 - **membership-management** (`REPORT-CONVERSATIONS-EMAIL-API-HANDOFF.md`, stage 2): `path` is
   `/groups/reports/{report_id}?section={key}` for a section thread. The payload gains
