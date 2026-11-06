@@ -18,6 +18,9 @@ PR #67, migration `096025ed70a6`; staff-app PR #104).
 2026), so **Part 2 is next**. None of the three Part 2 handoffs has been updated yet: apply the
 [Nov 2026 changes](#changes-to-the-part-2-handoffs-nov-2026) and `prayer-follow-up.md`'s
 *Changes for report conversations Part 2* in each repo first, auth-server first.
+*Update (Nov 5, 2026):* **Part 1c, an unread dot** on the sidebar's Conversations item (rule 17),
+was decided before Part 2. It's in-app only and runs as usual (not learning mode), so it can ship
+before or alongside Part 2.
 
 - **Depends on:** `small-group-reports.md` (rule 9 as changed in Oct 2026: the group's leaders see
   observations), `small-group-leader-access.md` (scope), `roles-and-permissions.md`.
@@ -28,7 +31,9 @@ PR #67, migration `096025ed70a6`; staff-app PR #104).
   `membership-management/docs/REPORT-CONVERSATIONS-API-HANDOFF.md`,
   `staff-app/docs/design/REPORT-CONVERSATIONS.md`. Part 1b (done):
   `membership-management/docs/UNREAD-TAB-API-HANDOFF.md`, `staff-app/docs/design/UNREAD-TAB.md`
-  (branch `unread-tab`). Part 2 (written once Part 1 is on `main`):
+  (branch `unread-tab`). Part 1c (to write): `membership-management/docs/UNREAD-DOT-API-HANDOFF.md`,
+  `staff-app/docs/design/UNREAD-DOT.md` (branch `unread-dot`). Part 2 (written once Part 1 is on
+  `main`):
   `auth-server/docs/REPORT-CONVERSATIONS-EMAIL-HANDOFF.md`,
   `membership-management/docs/REPORT-CONVERSATIONS-EMAIL-API-HANDOFF.md`,
   `staff-app/docs/design/REPORT-CONVERSATIONS-EMAIL.md`. Part 1 is merged (Oct 2026).
@@ -64,6 +69,10 @@ Part 1b, Unread tab (in-app only, runs as usual, not learning mode; can ship bef
 1b. `membership-management`: `tab=unread` on the inbox route and an `unread` tab count (filtered in
     SQL); `report_conversations.last_activity_at` (migration, backfilled); *Mark all read*.
 2b. `staff-app`: the *Unread* tab on `/conversations` and its *Mark all read* action.
+
+Part 1c, unread dot (in-app only, runs as usual, not learning mode; can ship before Part 2):
+1c. `membership-management`: `hasUnread` on `GET /report-conversations/counts` (rule 17).
+2c. `staff-app`: the dot on the sidebar's Conversations item, shown only while the gold count is 0.
 
 Part 2 (after Part 1 is on `main`):
 3. `auth-server`: recipient language; templates (en/es) including the watcher variants; the generic
@@ -141,8 +150,18 @@ One repo per Claude Code session, as usual.
 17. **Unread tab** (Part 1b, Nov 2026): a fourth tab, *Unread*, lists the threads that are unread
     for you (rule 11), any status, with its own count. It's how you see activity that someone on
     your side already answered (rule 12 is per side, so their reply clears *Needs my reply* for
-    you). Only the tab count shows it: the sidebar badge and the dashboard blocks stay *Needs my
-    reply* only, so the badge keeps meaning "someone is waiting on us". The filter and the count
+    you). The sidebar's gold **number** and the dashboard blocks stay *Needs my reply* only, so the
+    number keeps meaning "someone is waiting on us".
+    *Changed Nov 5, 2026 (Part 1c):* the sidebar's Conversations item also shows a small **unread
+    dot**, light (`heading-on-dark`), never gold, with no number, when the caller has nothing
+    waiting (`needsMyReply = 0`) but at least one thread unread (the same SQL as the *Unread* tab,
+    over every thread in the caller's view, no group filter). When the gold number shows, the
+    dot hides: one signal at a time. Screen readers hear "Conversations, unread activity"
+    (es: "Conversaciones, actividad sin leer"); with the number, the existing "{count} waiting for
+    your reply". The dashboard blocks don't change. Design: the Staff App canvas's `Sidebar` board
+    (page "Shell components"), tweak `conversations = unread` (`waiting` is the gold number,
+    `none` shows nothing). Option A of the options board
+    (https://claude.ai/artifact/NCHsM9hBDWrFvq6Gc1RD9q). The filter and the count
     are SQL on `last_comment_user_id` / `last_comment_at` against the caller's read row (not the
     Python `is_unread` helper), so paging and counts agree.
     **Mark all read**: on launch, and whenever someone gains access (a new elder, a new leader),
@@ -224,7 +243,7 @@ Routes (camelCase, `CamelModel`):
 | `POST /report-conversations/{id}/resolve` · `/reopen` | Rule 10 |
 | `POST /report-conversations/{id}/read` | Rule 11 |
 | `GET /report-conversations?tab=reply\|unread\|open\|resolved&smallGroupId=&page=` | Inbox rows + the tab counts (`unread` added in Part 1b, rule 17) |
-| `GET /report-conversations/counts` | `{ needsMyReply }` for the sidebar badge (cheap, called per page) |
+| `GET /report-conversations/counts` | `{ needsMyReply, hasUnread }` for the sidebar badge and dot (cheap, called per page; `hasUnread` is an `EXISTS` over the *Unread* filter, not a count; added in Part 1c, rule 17) |
 | `POST /report-conversations/read-all?smallGroupId=` | Part 1b, rule 17: mark every thread in the caller's view (and filter) read; one upsert, returns `{ marked }` |
 
 Errors the staff app tells apart (status + `detail`, never shown raw): 409 `Link your account`
@@ -236,7 +255,8 @@ Errors the staff app tells apart (status + `detail`, never shown raw): 409 `Link
   above the table; panel at `/groups/reports/[id]?person=[memberId]` (side panel ≥ 1024, bottom
   sheet below). Same panel for 0 or N comments.
 - `/conversations`: the inbox, a top-level nav item visible when the user can see observations or
-  leads a group; badge from `/report-conversations/counts`.
+  leads a group; badge from `/report-conversations/counts`: the gold `needsMyReply` number, or,
+  when it's 0, the unread dot from `hasUnread` (Part 1c, rule 17).
 - Dashboard blocks reuse the inbox route with `tab=reply` and a limit of 3.
 - Everything shown on the canvas boards, light/dark, en/es, 1440/1024/390.
 
