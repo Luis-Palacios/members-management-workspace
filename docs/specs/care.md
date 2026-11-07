@@ -18,7 +18,8 @@ Two pieces of work, shipped in this order:
   attention* first, so none goes stale. A care can be started from a blank form, a report note, a
   follow-up item, a conversation or a care log entry; the source stays linked.
 
-**Status:** rules agreed (November 6, 2026). Design next, then handoffs.
+**Status:** rules agreed (November 6, 2026). Part 1 drawn on the canvas, waiting for review; Part 2
+design and the handoffs next.
 Not started in any repo. **Starts after report conversations Part 2 (email) is on `main`**: the
 owner picker uses its auth-server endpoint (rule 27), and email for care (later, rule 41) uses its
 outbox.
@@ -28,8 +29,20 @@ outbox.
   `report-tags.md` (*tags rule N*: the timeline, rules 19–24), `inactive-guests.md` (rule 15, typed
   timeline entries), `guest-small-groups.md` (guest scope, rule 17), `roles-and-permissions.md`
   (*permissions rule N*), `small-group-leader-access.md`.
-- **Design:** Staff App canvas (https://claude.ai/artifact/PLs9gdHVcigkRSAWJrsKs1), a new page
-  **"Care"**. Not drawn yet; boards are listed here once approved.
+- **Design:** Staff App canvas (https://claude.ai/artifact/PLs9gdHVcigkRSAWJrsKs1), page **"Care"**.
+  Each row's blue rules note matches this spec. Part 1 (draft, under review):
+  - Row *Care log · logging care*: `CareLogForm` (tweaks `variant`: `new` | `complete`; `kind`;
+    `when`: `done` | `planned`; `from`: `person` | `conversation` | `report`; `visibility`;
+    `viewer`; `size`; `lang`; `mode`). Variants: `CareLog-Call`, `CareLog-Planned`,
+    `CareLog-Heard`, `CareLog-Complete`, `CareLog-Leader-Message`, `CareLog-Phone-Dark-ES`.
+  - Row *on the person timeline*: `PersonTimeline` (tweak `care`: `off` | `on`, plus the existing
+    ones) and `MemberDetail` (`care`). Variants: `MemberDetail-Timeline-Care`,
+    `MemberDetail-Activity-Care`, `PersonTimeline-Care`, `PersonTimeline-Care-Leader`,
+    `PersonTimeline-Care-Filter`, `PersonTimeline-Care-Guest`, `PersonTimeline-Care-Phone-Dark-ES`.
+  - Row *Coming up on the dashboards*: `LeaderDashboard` (tweak `care`). Variants:
+    `LeaderDashboard-Elder-Care`, `LeaderDashboard-Care`, `LeaderDashboard-Care-Phone-Dark-ES`.
+  - Not drawn yet: *Log care* in the report row menu and the conversation panel (they open the
+    same form with *From* filled in); all of Part 2.
 - **Repo handoffs (the work, stage by stage), written after the design:**
   - `auth-server/docs/CARE-HANDOFF.md` (small: two resources)
   - `membership-management/docs/CARE-API-HANDOFF.md`
@@ -121,9 +134,12 @@ One repo per Claude Code session, as usual. Part 1 can ship and be used on its o
 10. **Edit and delete your own**, any time, like conversations rules 8–9: `edited_at`, previous text
     kept in a revisions table and never returned; soft delete, shown as "Entry deleted · date" in a
     care's stream and removed from timelines. Nobody edits or deletes someone else's entry.
-11. **Coming up.** The leader dashboard and the elder Report status page show, when there are any:
-    the viewer's own planned entries (author or *with*) in the next 7 days, then their past-due
-    *Record how it went* ones, first. Up to 3, with a link to all.
+11. **Coming up.** The leader dashboard and the elder Report status page show, under *Waiting for
+    your reply* and when there are any: the viewer's past-due planned entries (author or *with*),
+    each with *Record how it went*, then their planned entries in the next 7 days. All of them, no
+    "see all" link: only your own plans are listed, so the list stays short. Part 2's Care page
+    brings the full lists. On the person timeline, planned entries still ahead sit under a *Coming
+    up* heading above the months, whatever the date range.
 12. **Linked source (optional):** an entry can be logged from a report attendance row, a report
     section item or a conversation thread; it keeps a link and shows "From the report of Oct 12 ·
     Nuevos Jueves". The link opens only for viewers who can see the source. Deleting the report
