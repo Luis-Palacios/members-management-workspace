@@ -18,7 +18,7 @@ Two pieces of work, shipped in this order:
   attention* first, so none goes stale. A care can be started from a blank form, a report note, a
   follow-up item, a conversation or a care log entry; the source stays linked.
 
-**Status:** rules agreed (November 6, 2026). Part 1 drawn on the canvas, waiting for review; Part 2
+**Status:** rules agreed (November 6, 2026). Part 1 design approved (November 6, 2026); Part 2
 design and the handoffs next.
 Not started in any repo. **Starts after report conversations Part 2 (email) is on `main`**: the
 owner picker uses its auth-server endpoint (rule 27), and email for care (later, rule 41) uses its
@@ -30,7 +30,7 @@ outbox.
   timeline entries), `guest-small-groups.md` (guest scope, rule 17), `roles-and-permissions.md`
   (*permissions rule N*), `small-group-leader-access.md`.
 - **Design:** Staff App canvas (https://claude.ai/artifact/PLs9gdHVcigkRSAWJrsKs1), page **"Care"**.
-  Each row's blue rules note matches this spec. Part 1 (draft, under review):
+  Each row's blue rules note matches this spec. Part 1 (approved):
   - Row *Care log · logging care*: `CareLogForm` (tweaks `variant`: `new` | `complete`; `kind`;
     `when`: `done` | `planned`; `from`: `person` | `conversation` | `report`; `visibility`;
     `viewer`; `size`; `lang`; `mode`). Variants: `CareLog-Call`, `CareLog-Planned`,
