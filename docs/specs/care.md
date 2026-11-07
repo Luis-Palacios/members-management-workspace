@@ -19,7 +19,7 @@ Two pieces of work, shipped in this order:
   follow-up item, a conversation or a care log entry; the source stays linked.
 
 **Status:** rules agreed (November 6, 2026). Part 1 design approved (November 6, 2026); Part 2
-design and the handoffs next.
+drawn, waiting for review. Handoffs next.
 Not started in any repo. **Starts after report conversations Part 2 (email) is on `main`**: the
 owner picker uses its auth-server endpoint (rule 27), and email for care (later, rule 41) uses its
 outbox.
@@ -41,8 +41,27 @@ outbox.
     `PersonTimeline-Care-Filter`, `PersonTimeline-Care-Guest`, `PersonTimeline-Care-Phone-Dark-ES`.
   - Row *Coming up on the dashboards*: `LeaderDashboard` (tweak `care`). Variants:
     `LeaderDashboard-Elder-Care`, `LeaderDashboard-Care`, `LeaderDashboard-Care-Phone-Dark-ES`.
-  - Not drawn yet: *Log care* in the report row menu and the conversation panel (they open the
-    same form with *From* filled in); all of Part 2.
+  - Part 2 (draft, under review), Part 2 rows of the same page:
+    - *The Care page*: `CareList` (tweaks `tab`: `attention` | `open` | `unread` | `prayer` |
+      `closed`; `user`; `state`; `size`; `lang`; `mode`) and `Sidebar` (`care`: `on`, `active`:
+      `care`). Variants: `CareList-Open`, `CareList-Leader`, `CareList-Prayer-Leader`,
+      `CareList-Empty`, `CareList-Phone-Dark-ES`, `Sidebar-Care`.
+    - *A care's page*: `CareDetail` (`care`: `marisol` | `lucia` | `carmen` | `teresa`; `user`;
+      `overlay`: `none` | `update` | `close`) and `CareLogForm` (`variant`: `care`, the *Add
+      update* form with the next check-in). Variants: `CareDetail-Update`, `CareDetail-Lucia-Leader`,
+      `CareDetail-NeedsOwner`, `CareDetail-Close`, `CareDetail-Closed`, `CareDetail-Phone-Dark-ES`.
+    - *Starting care, adding to care*: `StartCareForm` (`variant`: `start` | `edit`; `from`:
+      `blank` | `followUp` | `observation` | `careLog`; `visibility`; `own`; `viewer`),
+      `AddToCareDialog` (`from`: `note` | `careLog`) and `CareMenu` (the row menu: *Log care*,
+      *Start care*, *Add to care*, and the linked-care chip). Variants: `StartCare-Blank`,
+      `StartCare-FromFollowUp`, `StartCare-Leader-NoOwner`, `StartCare-Leader-Private`,
+      `StartCare-FromCareLog`, `StartCare-Edit`, `StartCare-Phone-Dark-ES`, `AddToCare`,
+      `AddToCare-Entry`.
+    - *On the dashboards and the timeline*: `LeaderDashboard` and `PersonTimeline` / `MemberDetail`
+      (`care`: `full`). Variants: `LeaderDashboard-Elder-CareFull`, `LeaderDashboard-CareFull`,
+      `MemberDetail-Timeline-CareFull`, `PersonTimeline-CareFull-Leader`.
+  - Not drawn: the status menu (open ↔ monitoring) on the status pill; the owner picker's list;
+    email (rule 41).
 - **Repo handoffs (the work, stage by stage), written after the design:**
   - `auth-server/docs/CARE-HANDOFF.md` (small: two resources)
   - `membership-management/docs/CARE-API-HANDOFF.md`
@@ -264,16 +283,20 @@ One repo per Claude Code session, as usual. Part 1 can ship and be used on its o
     closed* entry for each care about that person the viewer can open, linking to it. Covered by
     the **Care** chip (rule 13).
 39. **The Care page** (`/care`, nav **Care** / *Acompañamientos*, needs `care: view`):
-    - Tabs: **Needs attention** (overdue or due check-ins, *Needs an owner*, urgent; for owners, and
-      for everyone with `care: all`), **Open** (open and monitoring), **Unread**, **For prayer**,
-      **Closed**. Counts on each.
+    - Tabs: **Needs attention**, **Open** (open and monitoring), **Unread**, **For prayer**,
+      **Closed**. Counts on each. *Needs attention* lists: every care the viewer can open that has
+      no owner; the viewer's own cares that are overdue, due today or urgent; and, with `care: all`,
+      everyone's overdue, due and urgent cares. Urgent first, then by check-in, ownerless ones
+      ahead of others on the same rank.
     - Filters: *Mine* (I'm an owner) / *All*; *Urgent*; group (cares with a person in that group).
     - A row shows title, people, owners (or *Needs an owner*), status, *Urgent*, last update and next
       check-in (overdue in red, due in amber).
     - **Sidebar badge:** your *Needs attention* count: cares you own that are overdue or due, plus,
       with `care: all`, cares with no owner. A leader's badge never counts other people's cares.
-    - **Dashboards:** up to 3 *Needs attention* rows at the top of the leader dashboard and the elder
-      Report status page, hidden when there are none (like conversations rule 16).
+    - **Dashboards:** *Care needing attention*, up to 3 *Needs attention* rows with a link to the
+      Care page, at the top of the leader dashboard and the elder Report status page (above
+      *Waiting for your reply*), hidden when there are none (like conversations rule 16). *Coming
+      up* (rule 11) stays below.
 
 ### Permissions
 
