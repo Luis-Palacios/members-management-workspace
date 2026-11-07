@@ -18,8 +18,8 @@ Two pieces of work, shipped in this order:
   attention* first, so none goes stale. A care can be started from a blank form, a report note, a
   follow-up item, a conversation or a care log entry; the source stays linked.
 
-**Status:** rules agreed (November 6, 2026). Part 1 design approved (November 6, 2026); Part 2
-drawn, waiting for review. Handoffs next.
+**Status:** rules agreed (November 6, 2026). Design approved for both parts and repo handoffs
+written (November 6, 2026).
 Not started in any repo. **Starts after report conversations Part 2 (email) is on `main`**: the
 owner picker uses its auth-server endpoint (rule 27), and email for care (later, rule 41) uses its
 outbox.
@@ -41,7 +41,7 @@ outbox.
     `PersonTimeline-Care-Filter`, `PersonTimeline-Care-Guest`, `PersonTimeline-Care-Phone-Dark-ES`.
   - Row *Coming up on the dashboards*: `LeaderDashboard` (tweak `care`). Variants:
     `LeaderDashboard-Elder-Care`, `LeaderDashboard-Care`, `LeaderDashboard-Care-Phone-Dark-ES`.
-  - Part 2 (draft, under review), Part 2 rows of the same page:
+  - Part 2 (approved), Part 2 rows of the same page:
     - *The Care page*: `CareList` (tweaks `tab`: `attention` | `open` | `unread` | `prayer` |
       `closed`; `user`; `state`; `size`; `lang`; `mode`) and `Sidebar` (`care`: `on`, `active`:
       `care`). Variants: `CareList-Open`, `CareList-Leader`, `CareList-Prayer-Leader`,
@@ -62,10 +62,11 @@ outbox.
       `MemberDetail-Timeline-CareFull`, `PersonTimeline-CareFull-Leader`.
   - Not drawn: the status menu (open ↔ monitoring) on the status pill; the owner picker's list;
     email (rule 41).
-- **Repo handoffs (the work, stage by stage), written after the design:**
+- **Repo handoffs (the work, stage by stage):**
   - `auth-server/docs/CARE-HANDOFF.md` (small: two resources)
   - `membership-management/docs/CARE-API-HANDOFF.md`
-  - `staff-app/docs/design/CARE.md`
+  - `staff-app/docs/design/CARE.md` (uses the filled open-hands `CareIcon` from the canvas's
+    `Sidebar` board for care everywhere; prayer keeps the heart)
 - **Branch name in every repo:** `care-log` for Part 1, `care` for Part 2.
 
 ## Words
