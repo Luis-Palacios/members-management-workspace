@@ -52,5 +52,8 @@ services below it are separate repos (see `README.md`):
   repo. Do not make one commit that spans repos.
 - If a stage needs something from another repo that isn't there yet, say so and stop; don't stub it
   in committed code.
+- Change files with Edit/Write, not shell scripts (`python3 -c`, `sed -i`, heredocs): the lint hooks
+  that run after an edit, and `/rewind`, only see Edit/Write.
+- Browser checks go through the `browser-verifier` agent, not Chrome tools in the main session.
 - Mention in your final message anything another repo must change (token re-sync, new permission names,
   API type regeneration).

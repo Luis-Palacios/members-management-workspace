@@ -7,6 +7,8 @@
 !/GEMINI.md
 !/README.md
 !/docs/
+!/.claude/
+/.claude/settings.local.json
 
 # macOS Finder metadata, anywhere in the tree
 .DS_Store
