@@ -13,7 +13,7 @@ Find where a feature stands and propose the next stage. Don't edit, branch or sw
    `git log --oneline -5`, and whether the feature branch is merged (`gh pr list -R <repo> --head <branch>
    --state all --json number,state`).
 3. Check the progress log against git: every `[x]` stage's hash on `main` or the feature branch
-   (`git merge-base --is-ancestor <hash> main`). Merges rebase, so hashes often go stale: list the ones to fix.
+   (`git merge-base --is-ancestor <hash> main`). PRs merge by fast-forward, so hashes should match; list any that don't.
 4. Report in under 10 lines: the stages done, the next stage with its repo and the files it touches, any
    mismatch (stale hashes, uncommitted work, wrong branch, a stage that needs another repo's unfinished work).
 5. If the next stage is in a different repo from this session's folder, say so and offer `/next-session`

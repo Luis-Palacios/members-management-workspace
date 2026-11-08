@@ -56,6 +56,8 @@ services below it are separate repos (see `README.md`):
   branch is `feature/<slug>` from `docs/specs/<slug>.md`, the same name in every repo it touches;
   `chore/` covers docs, roadmap, deps, Docker, CI and Claude config. One branch per feature per repo:
   follow-ups go on it before the merge, or on `fix/<slug>-<what>` after. A hook blocks other names.
+- **Merging**: PRs merge by fast-forward from the terminal (`/sync-main merge`), not GitHub's button, so
+  the hashes in handoff progress logs stay the ones on `main`. Squash and rebase are off on GitHub.
 - Change files with Edit/Write, not shell scripts (`python3 -c`, `sed -i`, heredocs): the lint hooks
   that run after an edit, and `/rewind`, only see Edit/Write.
 - Browser checks go through the `browser-verifier` agent, not Chrome tools in the main session.

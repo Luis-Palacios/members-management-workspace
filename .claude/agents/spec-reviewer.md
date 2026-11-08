@@ -17,7 +17,8 @@ switch branches; use `git show`, `git diff`, `git log` and `gh pr view/diff` to 
      codes, permission names (`auth-server/src/permissions/statements.ts` is the only source), JWT claims.
    - Permissions are checked by permission, never by role name. Cross-service ids have no foreign key.
    - Progress log: every `[x]` stage has a hash, and the hash is on the branch, or on `main` once merged
-     (`git merge-base --is-ancestor`). Merges rebase, so name the stale ones and their rebased copies.
+     (`git merge-base --is-ancestor`). PRs merge by fast-forward, so a missing hash is a finding (an
+     old rebase merge, or a branch rebased without updating its log): name it and its copy on `main`.
    - The repo's own CLAUDE.md conventions (i18n keys in en and es, tokens, ruff/biome, migrations reviewed).
 4. Report, most important first, under 30 lines:
    - Findings: `file:line` — what's wrong — what the spec says.
