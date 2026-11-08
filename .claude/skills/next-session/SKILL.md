@@ -9,7 +9,7 @@ Write a self-contained prompt for a new session started in `<repo>` (`$ARGUMENTS
 The prompt, in this order, as one fenced block the user can paste:
 1. What to implement: the handoff (`docs/<FEATURE>-API-HANDOFF.md`, `docs/design/<FEATURE>.md` or
    `docs/<FEATURE>-HANDOFF.md`), and "Read ../docs/specs/<feature>.md first", with the rule numbers that matter.
-2. The branch, and whether it exists yet. Stage by stage, one commit per stage, progress log updated with
+2. The branch (`feature/<spec-slug>`, the same name as in the other repos), and whether it exists yet. Stage by stage, one commit per stage, progress log updated with
    each commit. Where to stop and wait for the user (e.g. after each stage, or before the PR).
 3. What the other repos already did that this one depends on: merged or on which branch, the endpoint or
    permission names and shapes, and anything that differs from the spec (from their "Decisions and

@@ -52,6 +52,10 @@ services below it are separate repos (see `README.md`):
   repo. Do not make one commit that spans repos.
 - If a stage needs something from another repo that isn't there yet, say so and stop; don't stub it
   in committed code.
+- **Branch names** (every repo): `feature/`, `fix/` or `chore/` + lowercase kebab-case. A spec's
+  branch is `feature/<slug>` from `docs/specs/<slug>.md`, the same name in every repo it touches;
+  `chore/` covers docs, roadmap, deps, Docker, CI and Claude config. One branch per feature per repo:
+  follow-ups go on it before the merge, or on `fix/<slug>-<what>` after. A hook blocks other names.
 - Change files with Edit/Write, not shell scripts (`python3 -c`, `sed -i`, heredocs): the lint hooks
   that run after an edit, and `/rewind`, only see Edit/Write.
 - Browser checks go through the `browser-verifier` agent, not Chrome tools in the main session.
