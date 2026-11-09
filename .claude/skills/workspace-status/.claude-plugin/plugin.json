@@ -1,0 +1,6 @@
+{
+  "name": "workspace-status",
+  "version": "0.1.0",
+  "description": "A row above the prompt: each members-management repo's branch and uncommitted files, and whether the local dev stack is up.",
+  "types": "./types/index.d.ts"
+}
