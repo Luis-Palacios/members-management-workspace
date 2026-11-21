@@ -593,8 +593,12 @@ For a `report_conversation.comment_added` event:
   opt-out). Both 403 outside the full-scope audience. My profile lists the groups with a Watching
   switch each; the group's page has the same switch.
 - **Recipient language**: stored on the auth-server user (`locale`, `en` | `es`), set from the
-  request at sign-in while empty and whenever the user picks a language in the account menu.
-  Emails use it, falling back to English.
+  request (the `ekk_locale` cookie, then `Accept-Language`) while empty, at sign-in **or when an
+  active session is extended** (about once a day of use, so users who never sign in again get one
+  too), and whenever the user picks a language in the account menu (always overwrites).
+  Emails use it, falling back to English. *Added Nov 21, 2026 (auth-server Stage 1):* staff-app's
+  `getSession()` (`api/auth-api/client.ts`) must forward `accept-language` as well as `cookie`, or
+  the refresh path only sees users who have used the picker; part of staff-app's Part 2.
 - **Push later** is another `channel` on deliveries and preferences, created from the same events
   (rule 22); `outbox_events` doesn't change.
 - **Kill switch**: `CONVERSATION_EMAILS_ENABLED` (default `false`). Off = no event rows, nothing
