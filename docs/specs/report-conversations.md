@@ -28,6 +28,16 @@ short as resolved threads pile up. In-app only, runs as usual (not learning mode
 can ship before or alongside Part 2.
 *Update (Nov 6, 2026):* **Part 1d is implemented and merged** in both repos (membership-management
 PR #70, no migration; staff-app PR #106).
+*Update (Nov 22, 2026):* **Part 2 is implemented in membership-management** (branch
+`feature/report-conversations-email`, migration `b453135219c0`; auth-server's side merged in its PR
+#35); staff-app's Part 2 is next. Where the build differs from this spec (detail in
+`membership-management/docs/REPORT-CONVERSATIONS-EMAIL-API-HANDOFF.md`, *Decisions and deviations*):
+the two pure functions (rule 23) live in `data/small_groups/access_rules.py`, not `api/access.py`,
+since the worker imports nothing from FastAPI (`access.py` calls them, still one copy); a **closed
+group's** `leader` recipients are its leaders when it closed (the scope's periods), not "current"
+leaders, of which it has none; possible watchers are fetched with all four full-scope permissions,
+not only `smallGroups:all` (still a superset); the worker's stop flag is checked between items, not
+only between batches; released rows keep the `next_attempt_at` their claim set.
 
 - **Depends on:** `small-group-reports.md` (rule 9 as changed in Oct 2026: the group's leaders see
   observations), `small-group-leader-access.md` (scope), `roles-and-permissions.md`.
@@ -450,9 +460,9 @@ For a `report_conversation.comment_added` event:
   Only users it returns get a delivery.
   - **Stamped with the comment's time, not the worker's clock.** `:occurred_at` is the event's
     `occurredAt`, which is exactly the comment's `created_at` (the value also written to
-    `last_comment_at`). So opening the thread, or *Mark all read* (which sets `last_read_at` to
-    `last_comment_at`, rule 17), always lifts the throttle. With the worker's clock it was always
-    later than any comment time, and *Mark all read* never lifted it.
+    `last_comment_at` and `last_activity_at`). So opening the thread, or *Mark all read* (which
+    sets `last_read_at` to `last_activity_at`, rule 17), always lifts the throttle. With the
+    worker's clock it was always later than any comment time, and *Mark all read* never lifted it.
   - **Already read → no email.** The first `WHERE` skips anyone whose `last_read_at` is at or after
     the comment: they saw it in the app before the worker ran (the 60 s head start, an outage).
   - **Concurrency and order:** Postgres re-checks the conflict `WHERE` against the latest locked
