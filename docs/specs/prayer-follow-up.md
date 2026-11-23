@@ -218,7 +218,8 @@ key), plus the existing conversation errors.
 
 ## Changes for report conversations Part 2
 
-Apply to the three Part 2 handoffs before Part 2 starts (this feature is on `main`; not applied yet):
+Apply to the three Part 2 handoffs before Part 2 starts. **Applied and built** (Nov 2026: auth-server
+PR #35, membership-management PR #72, staff-app PR #109):
 
 - **membership-management** (`REPORT-CONVERSATIONS-EMAIL-API-HANDOFF.md`, stage 2): `path` is
   `/groups/reports/{report_id}?section={key}` for a section thread. The payload gains

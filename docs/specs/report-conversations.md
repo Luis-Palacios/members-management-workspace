@@ -5,7 +5,8 @@ group report; the group's leaders reply. This replaces the Google Sheets habit: 
 observation per person, elders added a comment on that line, leaders replied. Conversations can be
 resolved, and a cross-report **Conversations** inbox shows what is waiting for whom.
 
-**Status:** Part 1 implemented and merged (October 2026); Part 2 (email) planned, **after**
+**Status:** Part 1 implemented and merged (October 2026); Part 2 (email) implemented and merged
+(Nov 22, 2026; see the last update below). Originally planned **after**
 `prayer-follow-up.md`, which adds section threads (rule 2) and lists what they change in Part 2.
 *Update (Nov 2026):* Part 1b (an **Unread** inbox tab with *Mark all read*, rule 17), **watching
 groups** (rules 18–23, elders and admins get emails for leaders' comments in the groups they watch)
@@ -38,6 +39,13 @@ group's** `leader` recipients are its leaders when it closed (the scope's period
 leaders, of which it has none; possible watchers are fetched with all four full-scope permissions,
 not only `smallGroups:all` (still a superset); the worker's stop flag is checked between items, not
 only between batches; released rows keep the `next_attempt_at` their claim set.
+*Update (Nov 22, 2026):* **Part 2 is implemented and merged in all three repos** (auth-server PR
+#35, membership-management PR #72, staff-app PR #109); emails stay off until
+`CONVERSATION_EMAILS_ENABLED=true` in production. Where staff-app's build differs (detail in
+`staff-app/docs/design/REPORT-CONVERSATIONS-EMAIL.md`, *Decisions and deviations*): while
+"Conversation emails" is off, the Watching switches are disabled, not hidden; the email links' sign-in
+return (`/sign-in?next=`) didn't exist before and now covers a stale cookie as well as none; the
+canvas had no boards for the Watching switch or the My profile list when it was built.
 
 - **Depends on:** `small-group-reports.md` (rule 9 as changed in Oct 2026: the group's leaders see
   observations), `small-group-leader-access.md` (scope), `roles-and-permissions.md`.
@@ -101,7 +109,8 @@ Part 2; no migration). **Done** (Nov 2026), both steps merged:
 2d. `staff-app`: the *Resolved in* select on the *Resolved* tab, `?period=` in the URL, the
     filtered-count line and the period-aware empty state.
 
-Part 2 (after Part 1 is on `main`):
+Part 2 (after Part 1 is on `main`). **Done** (Nov 2026), all three steps merged (auth-server PR #35,
+membership-management PR #72, staff-app PR #109):
 3. `auth-server`: recipient language; templates (en/es) including the watcher variants; the generic
    `POST /internal/notifications` sending through Resend; `GET /internal/users/with-permission`
    and `POST /internal/users/permissions`.
@@ -660,6 +669,10 @@ session, as usual) before that repo's Part 2 work starts, next to the section-th
   as it keeps `?person=` and `?section=`.
 - **Canvas**: the Watching switch, the My profile list, the *Unread* tab with *Mark all read*, and
   the watcher email variants need boards before the staff-app and auth-server stages that use them.
+  *Done (Nov 22, 2026):* the last two were added after staff-app's build, from it: the
+  `NotificationsCard` component and the *Conversation emails and watched groups* row on My profile,
+  the *Watching* row on Small groups, and `ThreadPanel`'s composer notes in the general wording
+  (no names; watching elders for a leader's first comment).
 
 ## Starter prompts (Part 1; copy into a fresh Claude Code session per repo)
 
