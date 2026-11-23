@@ -107,4 +107,5 @@ preferences contracts between them; staff-app after membership-management's API 
 - **Schedule in church settings** with an admin UI, once multi-tenancy lands.
 - **A follow-up nudge** on Sunday or Monday if the report is still missing.
 - **Per-group timing**: the morning after each group's own meeting day.
-- **WhatsApp or push**: another `channel` on the same deliveries and preferences.
+- **WhatsApp or push**: another `channel` on the same deliveries and preferences. Push and an in-app
+  list are specified in `docs/specs/notifications.md`.

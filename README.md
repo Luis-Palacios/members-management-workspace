@@ -11,6 +11,7 @@ folder and ignored by this repo's `.gitignore`.
 | `auth-server/` | Node better-auth service: users, sessions, roles, invites | `git@github.com:Luis-Palacios/auth-server.git` |
 | `management-infra/` | Deployment roadmap and infra | `git@github.com:Luis-Palacios/management-infra.git` |
 | `ekklesiaio-landing/` | Public landing page and waitlist | `git@github.com:Luis-Palacios/ekklesiaio-landing.git` |
+| `design-canvas/` | Git mirror of the Staff App design canvas (`/canvas-pull`, `/canvas-push`) | `git@github.com:Luis-Palacios/design-canvas.git` |
 
 ## Setting up a new computer
 
@@ -22,6 +23,7 @@ git clone git@github.com:Luis-Palacios/membership-management.git
 git clone git@github.com:Luis-Palacios/auth-server.git
 git clone git@github.com:Luis-Palacios/management-infra.git
 git clone git@github.com:Luis-Palacios/ekklesiaio-landing.git
+git clone git@github.com:Luis-Palacios/design-canvas.git
 ```
 
 Then follow each repo's own README / `CLAUDE.md` for installing and running it.
@@ -53,6 +55,7 @@ is the one place its status is kept, so it isn't repeated here.
 | [Report submitted emails](docs/specs/report-submitted-emails.md) | Emails to watchers when a report is submitted |
 | [Report reminder emails](docs/specs/report-reminder-emails.md) | Weekly reminder emails to small group leaders and co-leaders |
 | [Care and the care log](docs/specs/care.md) | Care follow-up and its log |
+| [Notifications](docs/specs/notifications.md) | In-app notification list, bell and Web Push for the three email kinds |
 
 New specs start with `/new-spec`. Claude Code's `/build-spec` builds one from this workspace, with
 a subagent per repo that writes its own handoff, an Opus `spec-reviewer` checks each one, and UI

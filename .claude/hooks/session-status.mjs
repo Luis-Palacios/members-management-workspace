@@ -31,7 +31,7 @@ function repoStatus(name) {
   return `${(name === '.' ? 'workspace' : name).padEnd(22)} ${(branch.status === 0 ? branch.stdout.trim() : '').padEnd(28)} dirty ${dirty}${aheadBehind ? ` (${aheadBehind})` : ''}`;
 }
 
-const status = ['.', 'staff-app', 'auth-server', 'membership-management', 'management-infra']
+const status = ['.', 'staff-app', 'auth-server', 'membership-management', 'management-infra', 'design-canvas']
   .map(repoStatus)
   .filter(line => line !== null)
   .join('\n');

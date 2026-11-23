@@ -265,6 +265,8 @@ each elder still **hears about** what leaders write is the job of email, per per
     (rule 23), applies to emails planned after the change; one already queued still goes out.
 22. **Channel-neutral:** the setting is "watch this group", not "email me about this group", so
     push notifications (later) follow the same rule without a second set of preferences.
+    *Nov 23, 2026:* push and the in-app list are in `notifications.md` (its rule 7), which applies
+    this rule to both.
 23. **Every email goes to someone who can open it.** Whatever the reason (leader, participant,
     watcher), a recipient must be in the conversation's **current** audience (rule 3) when the email
     is planned, decided by **the same function the API uses** to let them read it (no second copy

@@ -12,6 +12,7 @@ after(() => rmSync(temp, { recursive: true, force: true }));
 const repo = join(temp, 'repo');
 const worktree = join(temp, 'worktree');
 const emptyHooks = join(temp, 'empty-hooks');
+const designCanvas = join(worktree, 'design-canvas');
 mkdirSync(repo);
 mkdirSync(emptyHooks);
 const git = (...args) => execFileSync('git', args, { stdio: 'pipe' });
@@ -19,6 +20,9 @@ git('init', '-q', repo);
 git('-C', repo, '-c', 'user.name=Hook Test', '-c', 'user.email=hooks@example.invalid',
   '-c', 'commit.gpgsign=false', '-c', `core.hooksPath=${emptyHooks}`, 'commit', '-q', '--allow-empty', '-m', 'Initial');
 git('-C', repo, 'worktree', 'add', '-q', '-b', 'feature/hook-test', worktree);
+mkdirSync(designCanvas);
+git('init', '-q', designCanvas);
+git('-C', designCanvas, 'branch', '-M', 'main');
 
 function run(script, input, env = {}) {
   return spawnSync(process.execPath, [join(hooks, script)], {
@@ -49,6 +53,7 @@ test('status detects Git worktrees without a shell script and emits Claude and C
   assert.equal(claude.status, 0, claude.stderr);
   assert.equal(copilot.status, 0, copilot.stderr);
   assert.match(claude.stdout, /workspace\s+feature\/hook-test\s+dirty \d+/);
+  assert.match(claude.stdout, /design-canvas\s+main\s+dirty 0/);
   assert.equal(JSON.parse(copilot.stdout).additionalContext, claude.stdout);
 });
 
