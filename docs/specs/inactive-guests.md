@@ -13,7 +13,8 @@ Two pieces of work:
   changes from a list of report rows to a list of **typed entries**, so later features that don't
   come from small group reports add a new kind of entry instead of a new endpoint.
 
-**Status:** rules agreed (October 29, 2026). Design and handoffs next. Not started in any repo.
+**Status:** implemented and merged in all three repos (Oct 31, 2026): auth-server PR #31,
+membership-management PRs #57, #58 and #60, staff-app PR #91. Rules agreed Oct 29, 2026.
 
 - **Builds on:** `inactive-members.md` (*inactive rule N*), `guest-small-groups.md` (*guest rule
   N*), `report-tags.md` (*tags rule N*: the timeline, rules 19–24), `roles-and-permissions.md`

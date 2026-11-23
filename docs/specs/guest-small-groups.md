@@ -9,8 +9,9 @@ This feature adds **guests** as their own kind of person (never mixed into membe
 be a **guest group**, and lets guests take part in guest groups and their reports, using the same
 reports, conversations and dashboards as member groups.
 
-**Status:** rules agreed, core screens designed, handoffs written (October 2026). Not started in
-any repo.
+**Status:** implemented and merged in all three repos (Oct 23, 2026): auth-server PR #29,
+membership-management PR #49, staff-app PR #80. Creating guest groups and guests stays off until
+`GUEST_GROUPS_ENABLED` is on.
 
 - **Depends on:** `small-group-reports.md` (*reports rule N*), `small-group-leader-access.md`
   (*access rule N*), `roles-and-permissions.md` (*permissions rule N*), `groups-dashboard.md`,

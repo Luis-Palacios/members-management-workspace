@@ -4,6 +4,8 @@ On `/users/[id]` staff can change a user's role and ban or unban them. Until now
 shows the account and lets you link or unlink the member. Built on better-auth's `admin` plugin
 (`/admin/set-role`, `/admin/ban-user`, `/admin/unban-user`), which auth-server already installs.
 
+**Status:** implemented and merged (Oct 20, 2026): auth-server PR #28, staff-app PR #75.
+
 - **Repo handoffs (the work, stage by stage):**
   - `auth-server/docs/USER-ADMIN-ACTIONS-HANDOFF.md`
   - `staff-app/docs/design/USER-ADMIN-ACTIONS.md`

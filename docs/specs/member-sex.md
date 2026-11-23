@@ -4,6 +4,8 @@ Members get an optional **sex** field, **Male** or **Female** only. Staff set it
 form (add and edit); it shows on the member detail page and on My profile. Nothing else uses it
 yet: no list column, no filter, no reports.
 
+**Status:** implemented and merged (Oct 16, 2026): membership-management PR #34, staff-app PR #65.
+
 - **Repo handoffs (the work, stage by stage):**
   - `membership-management/docs/MEMBER-SEX-API-HANDOFF.md`
   - `staff-app/docs/design/MEMBER-SEX.md`

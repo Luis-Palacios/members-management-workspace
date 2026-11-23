@@ -6,6 +6,10 @@ group that day (came to the meeting, was at church the Sunday before, optional p
 Admins and elders see every group's reports; leaders and deacons see and work on the reports of
 the groups they lead or co-lead ("My reports").
 
+**Status:** implemented and merged (Oct 15–16, 2026): membership-management PR #32, staff-app PR
+#63. Later specs changed some rules (`report-tags.md`, `report-autosave.md`,
+`church-wide-no-meeting.md`, `report-conversations.md`); they say which.
+
 - **Depends on:** `docs/specs/small-group-leader-access.md`. Its scope (rules 2, 3, 4, 11) and
   rule 10 apply to reports from the start; implement it first in both repos.
 - **Already in the database:** `small_group_reports` and `small_group_report_attendances`

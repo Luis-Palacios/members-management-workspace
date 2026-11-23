@@ -1,8 +1,8 @@
 # Member ↔ user linking (cross-repo spec)
 
-**Status: implemented** on branch `member-user-linking` in `auth-server`, `membership-management` and
-`staff-app` (all stages ticked in each repo's progress log). This file keeps the decisions; the work
-and its history live in the handoffs and in the code.
+**Status: implemented and merged** in all three repos (Oct 15, 2026): auth-server PR #22,
+membership-management PR #30, staff-app PR #59. This file keeps the decisions; the work and its
+history live in the handoffs and in the code.
 
 Lets an admin or elder connect a **member** (membership-management) to a **user account**
 (auth-server), invite a member to sign in, and undo the connection. The link is how the system

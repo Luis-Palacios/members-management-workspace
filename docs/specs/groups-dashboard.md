@@ -12,6 +12,9 @@ for admins and elders, a **weekly view** of every open group's report and a **Ne
 card for groups that are behind or have no leader. Leaders and deacons keep a single Dashboard
 item with their own groups, unchanged.
 
+**Status:** implemented and merged (Oct 16, 2026): membership-management PR #33, staff-app PR #64.
+Menu labels changed later (see the update above).
+
 - **Depends on:** `docs/specs/small-group-reports.md` (on `main` in both repos). Its rules are
   referred to as *reports rule N*. Rule 9 (observations), 10 (not filed), 12 (church Sunday)
   matter most here.

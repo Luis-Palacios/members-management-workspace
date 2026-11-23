@@ -5,6 +5,8 @@ elder marks **the whole week as no meeting for every open group** in one step, w
 reason. No leader has to mark it for their group. It builds on the per-group no meeting (reports
 rule 13).
 
+**Status:** implemented and merged (Oct 29, 2026): membership-management PR #56, staff-app PR #89.
+
 - **Depends on:** `docs/specs/small-group-reports.md` (rules 1–13, on `main` in both repos) and
   `docs/specs/groups-dashboard.md` (the week view). *Reports rule N* and *dashboard rule N* refer
   to those.

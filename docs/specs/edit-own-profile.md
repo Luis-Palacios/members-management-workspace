@@ -3,6 +3,9 @@
 A signed-in user whose account is linked to a member can edit their own member data from
 `/users/me` (My profile). Until now that page was read-only.
 
+**Status:** implemented and merged in all three repos (Oct 20, 2026): auth-server PR #27,
+membership-management PR #43, staff-app PR #73.
+
 - **Repo handoffs (the work, stage by stage):**
   - `auth-server/docs/EDIT-OWN-PROFILE-HANDOFF.md`
   - `membership-management/docs/EDIT-OWN-PROFILE-API-HANDOFF.md`
