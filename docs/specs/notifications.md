@@ -25,7 +25,10 @@ on as many channels as they chose.
 - **Design:** Staff App canvas (https://claude.ai/artifact/PLs9gdHVcigkRSAWJrsKs1), new page
   **"Notifications"**, drawn **before** each part's staff-app step. Part 1 boards: the top bar with
   the bell (no unread, a count, 99+) at 1440/1024/390, the popover, the `/notifications` page (list,
-  empty) and the `Sidebar`/top bar at 390 with everything that has to fit. Part 2 boards: the
+  empty) and the `Sidebar`/top bar at 390 with everything that has to fit. *Drawn and approved
+  Nov 23, 2026*: `Bell-States`, `Bell-Popover`, `Notifications` (1440, empty, 1024, 390, 390 dark
+  ES) and the components `NotificationBell`, `TopbarPhone`, `NotificationsPopover`. The shared
+  `Topbar` board has a `bell` tweak, off by default, so older boards keep their look. Part 2 boards: the
   Notifications card in My profile as an email/push grid, and the *This device* row in each of its
   states (rule 22).
 - **Part 2 is a learning exercise** in all three repos, as report conversations Part 2 was: one code
@@ -198,11 +201,14 @@ The rest of the UI:
 | --- | --- | --- |
 | Bell label | Notifications | Notificaciones |
 | Page title | Notifications | Notificaciones |
+| Page subtitle | Activity on reports and conversations that concerns you. Kept for 90 days. | Actividad en reportes y conversaciones que te concierne. Se guardan 90 días. |
+| Unread line (next to *Mark all read*, hidden at 0) | {count} unread | {count} sin leer |
 | Mark all read | Mark all read | Marcar todo como leído |
 | See all | See all | Ver todas |
 | Show more | Show more | Ver más |
 | Today / Yesterday | Today / Yesterday | Hoy / Ayer |
-| Empty | You’re all caught up. New activity on reports and conversations will show here. | Estás al día. La actividad nueva en reportes y conversaciones aparecerá aquí. |
+| Empty, title | You’re all caught up | Estás al día |
+| Empty, body (page and popover) | New activity on reports and conversations will show here. | La actividad nueva en reportes y conversaciones aparecerá aquí. |
 | Grid columns | Email · Push | Correo · Push |
 | Device row label | This device | Este dispositivo |
 | Turn on | Turn on notifications on this device | Activar notificaciones en este dispositivo |
