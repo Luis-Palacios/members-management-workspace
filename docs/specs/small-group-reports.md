@@ -156,8 +156,8 @@ Errors the staff app tells apart (matched on status and `detail`, never shown):
 
 ## Not in this spec
 
-- Notifications or reminders for not-filed reports: weekly email reminders are specified in
-  `docs/specs/report-reminder-emails.md` (WhatsApp remains out of scope).
+- Notifications or reminders for not-filed reports: weekly email reminders are built
+  (`docs/specs/report-reminder-emails.md`); WhatsApp remains out of scope.
 - Report exports, printing and charts over time.
 - Uploaded member photos (the avatar is initials; a photo later uses the same circle).
 - Former leaders seeing past reports (access rule 3 stays).

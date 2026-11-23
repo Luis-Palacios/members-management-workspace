@@ -175,7 +175,8 @@ Errors the staff app tells apart (status + a phrase from `detail`, never shown):
 
 ## Not in this spec
 
-- Reminders or notifications for due reports (email, WhatsApp).
+- Reminders or notifications for due reports: weekly email reminders are built
+  (`docs/specs/report-reminder-emails.md`); WhatsApp remains out of scope.
 - Trends over several weeks, charts, exports.
 - Observation text on the dashboard (only the count; the text stays in report detail).
 - A weekly view for leaders or deacons, or deacons overseeing groups they don't lead.
