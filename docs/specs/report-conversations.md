@@ -593,9 +593,10 @@ For a `report_conversation.comment_added` event:
 
 ### Settings, language, switches
 
-- *Changing (Nov 22, 2026):* `report-submitted-emails.md` renames this switch to *Conversations*
-  in an Email notifications section, replaces the preferences routes' shape, and makes Watching
-  cover submitted reports too. The lines below are Part 2 as built.
+- *Changed (Nov 22, 2026, merged):* `report-submitted-emails.md` renamed this switch to
+  *Conversations* in an Email notifications section, replaced the preferences routes' shape
+  (`{ email, available }` per kind) and made Watching cover submitted reports too. The lines below
+  are Part 2 as first built.
 - **Opt-out**: "Conversation emails" in My profile = `notification_preferences` row
   `(user, report_conversation, email)`. Default on. Routes: `GET /me/notification-preferences` →
   `{ "conversationEmails": true, "emailsEnabled": false }`; `PUT` with `{ "conversationEmails":
