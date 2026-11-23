@@ -6,8 +6,10 @@ disable-model-invocation: true
 ---
 
 Repos: the ones named in `$ARGUMENTS`, or all of `.` (workspace), `staff-app`, `auth-server`,
-`membership-management`, `management-infra`. With `merge`, step 2 merges the open PRs first; without it,
-skip to step 3.
+`membership-management`, `management-infra`, `design-canvas`. With `merge`, step 2 merges the open PRs
+first; without it, skip to step 3. In `design-canvas`, `main` may also hold `/canvas-pull` commits not on
+GitHub yet: push them before merging a PR there (ask first), and a merged design PR is then pushed to the
+canvas from `main` only if it differs from what `/canvas-push` already sent.
 
 PRs merge by **fast-forward from here, never with GitHub's button** (squash and rebase are turned off;
 merge commit stays on only because GitHub needs one method). Fast-forward keeps the branch's hashes, so the

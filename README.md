@@ -11,6 +11,7 @@ folder and ignored by this repo's `.gitignore`.
 | `auth-server/` | Node better-auth service: users, sessions, roles, invites | `git@github.com:Luis-Palacios/auth-server.git` |
 | `management-infra/` | Deployment roadmap and infra | `git@github.com:Luis-Palacios/management-infra.git` |
 | `ekklesiaio-landing/` | Public landing page and waitlist | `git@github.com:Luis-Palacios/ekklesiaio-landing.git` |
+| `design-canvas/` | Git mirror of the Staff App design canvas (`/canvas-pull`, `/canvas-push`) | `git@github.com:Luis-Palacios/design-canvas.git` |
 
 ## Setting up a new computer
 
@@ -22,6 +23,7 @@ git clone git@github.com:Luis-Palacios/membership-management.git
 git clone git@github.com:Luis-Palacios/auth-server.git
 git clone git@github.com:Luis-Palacios/management-infra.git
 git clone git@github.com:Luis-Palacios/ekklesiaio-landing.git
+git clone git@github.com:Luis-Palacios/design-canvas.git
 ```
 
 Then follow each repo's own README / `CLAUDE.md` for installing and running it.

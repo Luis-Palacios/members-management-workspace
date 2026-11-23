@@ -9,7 +9,7 @@ import type { RepoStatus, ServiceStatus, Snapshot } from '../types'
 const snapshot = atom({ plugin: 'workspace-status', key: 'snapshot' } as const, null)
 const isHidden = atom({ plugin: 'workspace-status', key: 'isHidden' } as const, false)
 
-const REPOS = ['.', 'staff-app', 'auth-server', 'membership-management', 'management-infra']
+const REPOS = ['.', 'staff-app', 'auth-server', 'membership-management', 'management-infra', 'design-canvas']
 const HTTP_SERVICES = [
   { name: 'app', url: 'http://localhost:3001/' },
   { name: 'auth', url: 'http://localhost:5000/health/live' },

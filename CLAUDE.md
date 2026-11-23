@@ -14,6 +14,8 @@ services below it are separate repos (see `README.md`):
   (`members`) plus a read-only legacy SQL Server DB (`assimilation`).
 - `auth-server/`: Node + better-auth (Hono, Drizzle, Postgres). Users, sessions, roles, invites.
   Own DB, separate from membership-management's.
+- `design-canvas/`: git mirror of the design canvas below (boards as `.dc.html`, `canvas.json`).
+  Not a service; any agent may edit it per its `AGENTS.md`, only Claude Code pulls and pushes.
 - Planned: Flask and NestJS services; they will be added here as sibling repos.
 
 ## How the services talk
@@ -42,7 +44,9 @@ services below it are separate repos (see `README.md`):
   `auth-server/docs/<FEATURE>-HANDOFF.md`. Stage by stage, one reviewable commit per stage, on a
   feature branch, progress log at the top.
 - Design source of truth for the staff app: Claude Design canvas "ekklesiaio Staff App"
-  (https://claude.ai/artifact/PLs9gdHVcigkRSAWJrsKs1).
+  (https://claude.ai/artifact/PLs9gdHVcigkRSAWJrsKs1). It is viewed and approved there, and
+  changed and kept in history in `design-canvas/`: `/canvas-pull` before editing, edit on a branch,
+  `/canvas-push` to show it on the canvas, merge the PR once approved.
 - A spec is done when its stages are ticked in each repo's progress log. Then trim the detail that
   now lives in code, and keep only decisions in `docs/specs/`.
 
