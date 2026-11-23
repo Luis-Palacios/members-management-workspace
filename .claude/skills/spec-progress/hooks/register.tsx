@@ -32,6 +32,39 @@ const ROLES: Record<RoleKey, Role> = {
   scout: { name: 'Scout', letter: 'L', color: '#D97706', job: 'browser checks' },
 }
 
+// Each identity's mark, on a 24-unit grid, drawn as lines in its colour (desktop, vscode, mobile).
+const MARKS: Record<RoleKey, string> = {
+  // A shepherd's staff.
+  elder: '<path d="M10 22V9a4 4 0 1 1 8 0v1"/>',
+  // A key.
+  gatekeeper: '<circle cx="7" cy="12" r="4"/><path d="M11 12h10M17 12v3M20 12v2"/>',
+  // A ledger.
+  steward: '<path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/><path d="M9 9h6M9 13h6"/>',
+  // An open door.
+  usher: '<path d="M5 21V3h12v18M3 21h16"/><path d="M5 3l7 3v15"/><circle cx="10" cy="13" r=".6"/>',
+  // A trowel.
+  builder: '<path d="M15 9l5-5"/><path d="M15 9L6 11 3 21l10-2z"/>',
+  // An eye.
+  watchman: '<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+  // A lantern.
+  scout: '<path d="M9 3h6M12 3v2M7 7h10l-1 12H8z"/><path d="M12 11c1.5 1.5 1.5 3 0 4-1.5-1-1.5-2.5 0-4z"/>',
+}
+
+// The icon: a tinted disc, the mark, and while running a dashed ring that turns (still under Reduce Motion).
+function avatarSvg(role: RoleKey, isRunning: boolean): string {
+  const color = ROLES[role].color
+  const ring = isRunning
+    ? `<style>.r{transform-origin:12px 12px;animation:s 1.6s linear infinite}@keyframes s{to{transform:rotate(360deg)}}@media (prefers-reduced-motion: reduce){.r{animation:none}}</style><circle class="r" cx="12" cy="12" r="11" fill="none" stroke="${color}" stroke-width="1.4" stroke-dasharray="4 3"/>`
+    : ''
+
+  return (
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">` +
+    `<circle cx="12" cy="12" r="11" fill="${color}" fill-opacity="0.16"/>${ring}` +
+    `<g fill="none" stroke="${color}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" transform="translate(5 5) scale(0.583)">${MARKS[role]}</g>` +
+    `</svg>`
+  )
+}
+
 const REPO_ROLE: Record<string, RoleKey> = {
   'auth-server': 'gatekeeper',
   'membership-management': 'steward',
@@ -353,21 +386,35 @@ export const register: Register = on => {
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     const p = await read($, plan)
     if (e.props.hasSurvey || p === null || (await read($, isHidden))) return next(e)
-    const { Box, Button, Text } = $.ui.resolve(e)
+    const els = $.ui.resolve(e)
+    const { Box, Button, Text } = els
+    const Svg = 'Svg' in els ? els.Svg : undefined
+    // A drawn icon where the surface draws SVG, the letter badge on the terminal.
+    const badge = (role: RoleKey, isRunning: boolean) =>
+      Svg !== undefined ? (
+        <Svg
+          source={avatarSvg(role, isRunning)}
+          alt={`${ROLES[role].name}${isRunning ? ', working' : ''}`}
+          width={16}
+          height={16}
+          {...(isRunning ? { isInteractive: true } : {})}
+        />
+      ) : (
+        <Text color={ROLES[role].color} bold>
+          [{ROLES[role].letter}]
+        </Text>
+      )
     const t = await read($, now)
     const list = await read($, agents)
     const spin = SPINNER[Math.floor(t / 250) % SPINNER.length] ?? '•'
-    const elder = ROLES.elder
 
     return (
       <Box flexDirection="row" flexWrap="wrap">
-        <Text color={elder.color} bold>
-          [{elder.letter}]
-        </Text>
+        {badge('elder', false)}
         <Text bold> {p.spec}</Text>
         <Text dimColor>{p.isFinished ? ' · done' : ''}</Text>
         {p.repos.map(row => {
-          const role = ROLES[REPO_ROLE[row.repo] ?? 'builder']
+          const roleKey = REPO_ROLE[row.repo] ?? 'builder'
           const agent = [...list].reverse().find(a => a.repo === row.repo && a.role === REPO_ROLE[row.repo])
           const mark =
             row.status === 'merged' ? '✓' : row.status === 'running' ? spin : row.status === 'blocked' ? '✗' : row.status === 'pr' ? '⇡' : row.status === 'review' ? '◐' : '○'
@@ -379,15 +426,14 @@ export const register: Register = on => {
                 : (row.note ?? row.status)
 
           return (
-            <Text>
+            <Box flexDirection="row">
               <Text dimColor> · </Text>
-              <Text color={role.color} bold>
-                [{role.letter}]
-              </Text>
+              {badge(roleKey, row.status === 'running')}
               <Text>
+                {' '}
                 {mark} {row.repo} {detail}
               </Text>
-            </Text>
+            </Box>
           )
         })}
         <Text> </Text>
@@ -398,7 +444,33 @@ export const register: Register = on => {
   })
 
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
-    const { Box, Text } = $.ui.resolve(e)
+    const els = $.ui.resolve(e)
+    const { Box, Text } = els
+    const Svg = 'Svg' in els ? els.Svg : undefined
+    // The identity: drawn icon and name where the surface draws SVG, letter badge and name on the terminal.
+    const who = (key: RoleKey, isRunning: boolean) => {
+      const role = ROLES[key]
+
+      return Svg !== undefined ? (
+        <Box flexDirection="row">
+          <Svg
+            source={avatarSvg(key, isRunning)}
+            alt={`${role.name}${isRunning ? ', working' : ''}`}
+            width={22}
+            height={22}
+            {...(isRunning ? { isInteractive: true } : {})}
+          />
+          <Text color={role.color} bold>
+            {' '}
+            {role.name}
+          </Text>
+        </Box>
+      ) : (
+        <Text color={role.color} bold>
+          [{role.letter}] {role.name}
+        </Text>
+      )
+    }
     const p = await read($, plan)
     const list = await read($, agents)
     const t = await read($, now)
@@ -415,9 +487,7 @@ export const register: Register = on => {
 
       return (
         <Box flexDirection="row">
-          <Text color={role.color} bold>
-            [{role.letter}] {role.name}
-          </Text>
+          {who(a.role, a.status === 'running')}
           <Text dimColor>
             {' '}· run {a.run}
             {a.repo === undefined || role.job === a.repo ? '' : ` · ${a.repo}`}
@@ -438,12 +508,10 @@ export const register: Register = on => {
 
     return (
       <Box flexDirection="column">
-        <Text>
-          <Text color={elder.color} bold>
-            [{elder.letter}] {elder.name}
-          </Text>
+        <Box flexDirection="row">
+          {who('elder', false)}
           <Text dimColor> · {elder.job}</Text>
-        </Text>
+        </Box>
         {p === null ? (
           <Text dimColor>No spec in progress. /build-spec reports one here.</Text>
         ) : (
@@ -453,20 +521,17 @@ export const register: Register = on => {
               {p.isFinished ? ' · done' : ''}
             </Text>
             {p.repos.map(row => {
-              const role = ROLES[REPO_ROLE[row.repo] ?? 'builder']
-
               return (
-                <Text>
-                  <Text color={role.color} bold>
-                    {'  '}[{role.letter}] {role.name}
-                  </Text>
+                <Box flexDirection="row">
+                  <Text> </Text>
+                  {who(REPO_ROLE[row.repo] ?? 'builder', row.status === 'running')}
                   <Text>
                     {'  '}
                     {row.repo} · {row.status}
                     {row.pr === undefined ? '' : ` #${row.pr}`}
                   </Text>
                   <Text dimColor>{row.note === undefined ? '' : ` · ${row.note}`}</Text>
-                </Text>
+                </Box>
               )
             })}
           </Box>
