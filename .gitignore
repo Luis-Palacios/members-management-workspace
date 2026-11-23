@@ -2,6 +2,9 @@
 /*
 !/.gitignore
 !/.agents/
+!/.github/
+/.github/*
+!/.github/copilot-instructions.md
 !/AGENTS.md
 !/CLAUDE.md
 !/GEMINI.md
