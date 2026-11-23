@@ -83,5 +83,6 @@ between them; staff-app after membership-management's API was merged.
 - **Daily digest** of submitted reports per watcher, if one email per report is too many: a
   different delivery shape (one email for many events), so its own spec.
 - **Push**: another `channel` on the same deliveries and preferences (report conversations rule 22).
-- **Missing report reminders** (`small-group-reports.md`, *Not in v1*): a third category in the
-  same section.
+- **Missing report reminders** (`small-group-reports.md`, *Not in v1*): specified in
+  `docs/specs/report-reminder-emails.md` (adds `reportReminder` as the third category in the same
+  section).

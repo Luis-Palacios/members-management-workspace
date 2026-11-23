@@ -51,6 +51,7 @@ is the one place its status is kept, so it isn't repeated here.
 | [Report conversations](docs/specs/report-conversations.md) | Elder–leader threads on reports, inbox, conversation emails |
 | [Prayer & follow-up](docs/specs/prayer-follow-up.md) | Threads on report sections, prayer pages |
 | [Report submitted emails](docs/specs/report-submitted-emails.md) | Emails to watchers when a report is submitted |
+| [Report reminder emails](docs/specs/report-reminder-emails.md) | Weekly reminder emails to small group leaders and co-leaders |
 | [Care and the care log](docs/specs/care.md) | Care follow-up and its log |
 
 New specs start with `/new-spec`. `/build-spec` then builds one from this workspace, with a
