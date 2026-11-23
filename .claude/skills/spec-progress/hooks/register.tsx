@@ -302,7 +302,8 @@ export const register: Register = on => {
 
   on('tool.run', { tool: 'mcp__spec-progress__progress' }, async ($, e) => {
     if (e.agentId !== undefined) return { result: 'ignored: only the main session reports the plan' }
-    const merged = mergePlan(await read($, plan), asRecord(e.input), await $.clock.now())
+    // A tool's arguments sit on the event itself, beside `tool` and `agentId`.
+    const merged = mergePlan(await read($, plan), asRecord(e), await $.clock.now())
     if (typeof merged === 'string') return { deny: merged }
     await savePlan($, merged)
     await update($, isHidden, () => false)
@@ -314,7 +315,7 @@ export const register: Register = on => {
   on('tool.run', { tool: 'mcp__spec-progress__step' }, async ($, e) => {
     const id = e.agentId
     if (id === undefined || !known.has(id)) return { result: 'ignored: step is for /build-spec repo subagents' }
-    const step = parseStep(asRecord(e.input))
+    const step = parseStep(asRecord(e))
     if (typeof step === 'string') return { deny: step }
     await update($, agents, list => list.map(a => (a.id === id ? { ...a, step } : a)))
 
@@ -388,7 +389,8 @@ export const register: Register = on => {
     if (e.props.hasSurvey || p === null || (await read($, isHidden))) return next(e)
     const els = $.ui.resolve(e)
     const { Box, Button, Text } = els
-    const Svg = 'Svg' in els ? els.Svg : undefined
+    // The terminal lists an Svg element too but draws nothing for it: choose by surface.
+    const Svg = e.surface !== 'terminal' && 'Svg' in els ? els.Svg : undefined
     // A drawn icon where the surface draws SVG, the letter badge on the terminal.
     const badge = (role: RoleKey, isRunning: boolean) =>
       Svg !== undefined ? (
@@ -408,37 +410,44 @@ export const register: Register = on => {
     const list = await read($, agents)
     const spin = SPINNER[Math.floor(t / 250) % SPINNER.length] ?? '•'
 
+    // One line: the spec, then per repo its identity, a status mark and a short word. Repo names
+    // and notes are in the pane; the identity already says which repo it is.
     return (
-      <Box flexDirection="row" flexWrap="wrap">
-        {badge('elder', false)}
-        <Text bold> {p.spec}</Text>
-        <Text dimColor>{p.isFinished ? ' · done' : ''}</Text>
-        {p.repos.map(row => {
-          const roleKey = REPO_ROLE[row.repo] ?? 'builder'
-          const agent = [...list].reverse().find(a => a.repo === row.repo && a.role === REPO_ROLE[row.repo])
-          const mark =
-            row.status === 'merged' ? '✓' : row.status === 'running' ? spin : row.status === 'blocked' ? '✗' : row.status === 'pr' ? '⇡' : row.status === 'review' ? '◐' : '○'
-          const detail =
-            row.status === 'running' && agent?.step !== undefined
-              ? `${agent.step.done}/${agent.step.total}`
-              : row.status === 'merged' || row.status === 'pr'
-                ? `${row.pr === undefined ? '' : `#${row.pr} `}${row.status}`
-                : (row.note ?? row.status)
+      <Box flexDirection="row" justifyContent="space-between" columnGap={2}>
+        <Box flexDirection="row" flexWrap="wrap" columnGap={3}>
+          <Box flexDirection="row" columnGap={1}>
+            {badge('elder', false)}
+            <Text bold>{p.spec}</Text>
+            {p.isFinished ? <Text dimColor>done</Text> : null}
+          </Box>
+          {p.repos.map(row => {
+            const roleKey = REPO_ROLE[row.repo] ?? 'builder'
+            const agent = [...list].reverse().find(a => a.repo === row.repo && a.role === roleKey)
+            const mark =
+              row.status === 'merged' ? '✓' : row.status === 'running' ? spin : row.status === 'blocked' ? '✗' : row.status === 'pr' ? '⇡' : row.status === 'review' ? '◐' : '○'
+            const word =
+              row.status === 'running'
+                ? agent?.step === undefined
+                  ? 'running'
+                  : `${agent.step.done}/${agent.step.total}`
+                : (row.status === 'merged' || row.status === 'pr') && row.pr !== undefined
+                  ? `#${row.pr}`
+                  : row.status
 
-          return (
-            <Box flexDirection="row">
-              <Text dimColor> · </Text>
-              {badge(roleKey, row.status === 'running')}
-              <Text>
-                {' '}
-                {mark} {row.repo} {detail}
-              </Text>
-            </Box>
-          )
-        })}
-        <Text> </Text>
-        <Button key="agents" label="Agents" onPress={() => void $.ui.open({ id: PANE, title: PANE_TITLE })} />
-        <Button key="hide" label="Hide" onPress={() => update($, isHidden, () => true)} />
+            return (
+              <Box flexDirection="row" columnGap={1}>
+                {badge(roleKey, row.status === 'running')}
+                <Text>
+                  {mark} {word}
+                </Text>
+              </Box>
+            )
+          })}
+        </Box>
+        <Box flexDirection="row" columnGap={1}>
+          <Button key="agents" label="Agents" onPress={() => void $.ui.open({ id: PANE, title: PANE_TITLE })} />
+          <Button key="hide" label="Hide" onPress={() => update($, isHidden, () => true)} />
+        </Box>
       </Box>
     )
   })
@@ -446,7 +455,8 @@ export const register: Register = on => {
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
     const els = $.ui.resolve(e)
     const { Box, Text } = els
-    const Svg = 'Svg' in els ? els.Svg : undefined
+    // The terminal lists an Svg element too but draws nothing for it: choose by surface.
+    const Svg = e.surface !== 'terminal' && 'Svg' in els ? els.Svg : undefined
     // The identity: drawn icon and name where the surface draws SVG, letter badge and name on the terminal.
     const who = (key: RoleKey, isRunning: boolean) => {
       const role = ROLES[key]
