@@ -54,4 +54,6 @@ is the one place its status is kept, so it isn't repeated here.
 | [Care and the care log](docs/specs/care.md) | Care follow-up and its log |
 
 New specs start with `/new-spec`. `/build-spec` then builds one from this workspace, with a
-subagent per repo that writes its own handoff, and UI checks run with `/browser-check`.
+subagent per repo that writes its own handoff, an Opus `spec-reviewer` checks each one, and UI checks
+run with `/browser-check`. The `spec-progress` mod (`.claude/skills/spec-progress/`) shows the build:
+a row above the prompt and a *Spec agents* pane (`/spec-agents`).

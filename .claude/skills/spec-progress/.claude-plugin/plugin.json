@@ -1,0 +1,6 @@
+{
+  "name": "spec-progress",
+  "version": "0.1.0",
+  "description": "A /build-spec progress row above the prompt and a Spec agents pane: each repo's status and every subagent, with a fixed identity per repo.",
+  "types": "./types/index.d.ts"
+}
