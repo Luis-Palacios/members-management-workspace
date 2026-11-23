@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { copyFileSync, mkdirSync, mkdtempSync, rmSync, statSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, join } from 'node:path';
 import { after, test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 
@@ -19,8 +19,6 @@ git('init', '-q', repo);
 git('-C', repo, '-c', 'user.name=Hook Test', '-c', 'user.email=hooks@example.invalid',
   '-c', 'commit.gpgsign=false', '-c', `core.hooksPath=${emptyHooks}`, 'commit', '-q', '--allow-empty', '-m', 'Initial');
 git('-C', repo, 'worktree', 'add', '-q', '-b', 'feature/hook-test', worktree);
-mkdirSync(join(worktree, '.claude', 'hooks'), { recursive: true });
-copyFileSync(join(hooks, 'session-status.sh'), join(worktree, '.claude', 'hooks', 'session-status.sh'));
 
 function run(script, input, env = {}) {
   return spawnSync(process.execPath, [join(hooks, script)], {
@@ -43,7 +41,7 @@ test('branch hook preserves allow, deny, and malformed-input behavior', () => {
   assert.notEqual(run('branch-name.mjs', '{invalid').status, 0);
 });
 
-test('status detects Git worktrees and emits Claude and Copilot formats', () => {
+test('status detects Git worktrees without a shell script and emits Claude and Copilot formats', () => {
   assert.equal(statSync(join(worktree, '.git')).isFile(), true);
   const env = { CLAUDE_PROJECT_DIR: worktree };
   const claude = run('session-status.mjs', JSON.stringify({ transcript_path: 'test' }), env);
