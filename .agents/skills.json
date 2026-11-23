@@ -1,0 +1,8 @@
+{
+  "entries": [
+    {
+      "path": ".claude/skills",
+      "exclude": ["spec-progress", "workspace-status", "build-spec", "browser-check", "servers"]
+    }
+  ]
+}
