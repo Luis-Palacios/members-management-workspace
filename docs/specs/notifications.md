@@ -8,7 +8,25 @@ the app is installed to the Home Screen. Email alone is easy to miss, and a push
 it's swiped away. A stored list is the industry norm: one notification record per person, delivered
 on as many channels as they chose.
 
-**Status:** drafted (Nov 23, 2026). Nothing built yet.
+**Status:** Part 1 (in-app) **done** (Nov 23, 2026): membership-management#77 and staff-app#114, both
+merged. Both are behind `IN_APP_NOTIFICATIONS_ENABLED` (default off). Part 2 (Web Push) is not started.
+Trim this spec to its decisions once Part 2 is done too.
+
+Part 1 decisions made while building (details in the two handoffs):
+- Rule 14 clears reminder entries on both submit paths, whatever `REPORT_SUBMITTED_EMAILS_ENABLED` says.
+  It locks the matching entries `FOR UPDATE`, so two groups submitted at once can't both miss it. A
+  church-wide no meeting, a report moved into an owed week, and a group closed after the reminder don't
+  clear one: accepted, since the entry is purged after 90 days.
+- Unwatching stops future entries only (rule 7). Entries already written stay.
+- The worker also runs while only the in-app flag is on, for the 90-day purge only, with no
+  auth-server calls.
+- The bell's label says the real count, and only the badge caps at "99+". The count is client state,
+  read again on navigation, focus, tab show, and after anything that marks entries read (opening a
+  thread included), at most once per 2 s plus one trailing read.
+- `/notifications/open/{id}` refuses `Sec-Fetch-Site: cross-site` (redirects without marking), since
+  entry ids are sequential. Same-origin and `none` pass, so Part 2's push clicks are fine.
+- The Watching switches take "in-app is on" from `unread-count.enabled`, because
+  `/me/notification-preferences` has no in-app flag. Part 2's grid may add `available.inApp`.
 
 - **Depends on:** `report-conversations.md` (Part 2: outbox, worker, `notifications/`, rules 18–23),
   `report-submitted-emails.md`, `report-reminder-emails.md`. All three are done and merged.
@@ -38,10 +56,10 @@ on as many channels as they chose.
 ## Implementation order
 
 Part 1 (in-app):
-1. `membership-management`: the `user_notifications` table and migration; the three consumers write
+1. ✅ `membership-management` (#77): the `user_notifications` table and migration; the three consumers write
    entries; list, count and read routes; auto-read (rules 13–14); purge; the
    `IN_APP_NOTIFICATIONS_ENABLED` flag.
-2. `staff-app` (after step 1 is merged and the Part 1 canvas boards exist): the bell, the popover,
+2. ✅ `staff-app` (#114) (after step 1 is merged and the Part 1 canvas boards exist): the bell, the popover,
    `/notifications`, `/notifications/open/[id]`, and the app badge from the page.
 
 Part 2 (push, learning mode):
