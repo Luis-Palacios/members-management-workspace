@@ -57,7 +57,9 @@ is the one place its status is kept, so it isn't repeated here.
 | [Care and the care log](docs/specs/care.md) | Care follow-up and its log |
 | [Notifications](docs/specs/notifications.md) | In-app notification list, bell and Web Push for the three email kinds |
 
-New specs start with `/new-spec`. `/build-spec` then builds one from this workspace, with a
-subagent per repo that writes its own handoff, an Opus `spec-reviewer` checks each one, and UI checks
-run with `/browser-check`. The `spec-progress` mod (`.claude/skills/spec-progress/`) shows the build:
-a row above the prompt and a *Spec agents* pane (`/spec-agents`).
+New specs start with `/new-spec`. Claude Code's `/build-spec` builds one from this workspace, with
+a subagent per repo that writes its own handoff, an Opus `spec-reviewer` checks each one, and UI
+checks run with `/browser-check`. The `spec-progress` mod (`.claude/skills/spec-progress/`) shows
+the build: a row above the prompt and a *Spec agents* pane (`/spec-agents`). Copilot's
+`/copilot-build-spec` skill uses the cross-repo spec and handoff rules with available Copilot
+session tools; it does not depend on the Claude progress mod or Antigravity swarm.

@@ -2,13 +2,13 @@
   "hooks": {
     "PreToolUse": [
       { "matcher": "Bash", "hooks": [
-        { "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/branch-name.mjs\"", "timeout": 10 } ] }
+        { "type": "command", "command": "node -e \"import(require('node:url').pathToFileURL(require('node:path').resolve(process.env.CLAUDE_PROJECT_DIR||process.cwd(),'.claude/hooks/branch-name.mjs')).href)\"", "timeout": 10 } ] }
     ],
     "SessionStart": [
       {
         "matcher": "startup|clear",
         "hooks": [
-          { "type": "command", "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/session-status.sh\"", "timeout": 10 }
+          { "type": "command", "command": "node -e \"import(require('node:url').pathToFileURL(require('node:path').resolve(process.env.CLAUDE_PROJECT_DIR||process.cwd(),'.claude/hooks/session-status.mjs')).href)\"", "timeout": 10 }
         ]
       }
     ]

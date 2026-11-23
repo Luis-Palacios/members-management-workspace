@@ -2,7 +2,7 @@
 # SessionStart hook: one line per repo (branch, dirty files, ahead/behind) so Claude starts with the state.
 cd "${CLAUDE_PROJECT_DIR:-.}" || exit 0
 for r in . staff-app auth-server membership-management management-infra design-canvas; do
-  [ -d "$r/.git" ] || continue
+  [ -e "$r/.git" ] || continue
   b=$(git -C "$r" branch --show-current 2>/dev/null)
   d=$(git -C "$r" status --porcelain 2>/dev/null | wc -l | tr -d ' ')
   ab=$(git -C "$r" rev-list --left-right --count "@{u}...HEAD" 2>/dev/null | awk '{print "behind "$1", ahead "$2}')
