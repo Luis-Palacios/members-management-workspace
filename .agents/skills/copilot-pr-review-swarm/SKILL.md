@@ -68,7 +68,34 @@ Before any GitHub comment, submitted review, approval, or request for changes,
 obtain explicit user approval for the specific action and PR, verify the current
 head and available posting identity, and use only a supported, authorized
 posting method. Staging a review draft also requires explicit approval. The
-existing bot wrapper is optional and requires separately available credentials;
-never expose or change them, assume bot access, or fall back to another
-identity without user approval. Report a blocked posting action rather than
-claiming success.
+Copilot review identity is `lp-copilot-reviewer[bot]` (GitHub App 5895023).
+Never fall back to the Antigravity bot or a personal account. Report a blocked
+posting action rather than claiming success.
+
+## Copilot app setup and posting
+
+Install `lp-copilot-reviewer` for each owner and grant it access to the target
+repositories, including pull requests write permission for submitting reviews.
+Set the user-local `COPILOT_REVIEW_APP_KEY_PATH` environment variable to the
+app's private-key file; keep that file private and out of the repository.
+On Windows, new processes may need to be restarted to inherit the variable.
+The wrapper does not cache tokens and does not use the Antigravity configuration.
+
+Use the following commands from the workspace root with Node.js 18 or later:
+
+```text
+node .agents/skills/copilot-pr-review-swarm/scripts/copilot-review.cjs check OWNER/REPO
+node .agents/skills/copilot-pr-review-swarm/scripts/copilot-review.cjs review OWNER/REPO PR_NUMBER HEAD_SHA PAYLOAD.json --authorize
+```
+
+The check verifies the app, matching owner installation and repository access
+using read-only GitHub operations, and reports the installation's pull request
+permission. The review command requires explicit user approval for that action
+and PR **before** running it; `--authorize` records that approval, it does not
+replace it. The payload is a GitHub review JSON object with `event` (`COMMENT`,
+`APPROVE`, or `REQUEST_CHANGES`), optional `body`, `comments`, and `commit_id`.
+The wrapper checks that the PR is open and still has the reviewed head, and
+submits a review tied to that commit. If the check or submission fails, report
+the failure; never retry a potentially submitted review without checking the PR.
+For other kinds of GitHub write, use only a separately authorized method that
+can verify the same app identity, or report the action as blocked.
