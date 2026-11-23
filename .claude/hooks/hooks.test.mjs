@@ -33,15 +33,21 @@ function run(script, input, env = {}) {
 }
 
 test('branch hook preserves allow, deny, and malformed-input behavior', () => {
-  for (const [command, expected] of [
-    ['git status', 0],
-    ['git switch -c feature/example', 0],
-    ['git switch -c BAD_BRANCH', 2],
-  ]) {
+  for (const command of ['git status', 'git switch -c feature/example']) {
     const result = run('branch-name.mjs', JSON.stringify({ tool_input: { command } }));
-    assert.equal(result.status, expected);
-    if (expected === 2) assert.match(result.stderr, /BAD_BRANCH/);
+    assert.equal(result.status, 0);
   }
+
+  const denied = run('branch-name.mjs', JSON.stringify({ tool_input: { command: 'git switch -c BAD_BRANCH' } }));
+  assert.equal(denied.status, 0);
+  const response = JSON.parse(denied.stdout);
+  assert.equal(response.permissionDecision, 'deny');
+  assert.match(response.permissionDecisionReason, /BAD_BRANCH/);
+  assert.deepEqual(response.hookSpecificOutput, {
+    hookEventName: 'PreToolUse',
+    permissionDecision: 'deny',
+    permissionDecisionReason: response.permissionDecisionReason,
+  });
   assert.notEqual(run('branch-name.mjs', '{invalid').status, 0);
 });
 
