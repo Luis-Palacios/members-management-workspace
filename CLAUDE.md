@@ -48,8 +48,14 @@ services below it are separate repos (see `README.md`):
 
 ## Working across repos
 
-- Implement a feature **one repo per session, in the order the spec lists**, and commit in that
-  repo. Do not make one commit that spans repos.
+- Implement a feature **one repo per session (or subagent), in the order the spec lists**, and
+  commit in that repo. Do not make one commit that spans repos.
+- **Subagents when it makes sense.** The main session may run a repo's stage as a subagent instead
+  of handing over a prompt: one subagent per repo, working only there, committing on the feature
+  branch without pushing; the main session reviews against the spec before any PR. Repos may run
+  in parallel **only when the spec already fixes the contract between them** (e.g. an email
+  template's name and fields). When a repo builds on another's output that doesn't exist yet
+  (generated API types, a new endpoint's real shape), wait for that repo to finish and be reviewed.
 - If a stage needs something from another repo that isn't there yet, say so and stop; don't stub it
   in committed code.
 - **Branch names** (every repo): `feature/`, `fix/` or `chore/` + lowercase kebab-case. A spec's
