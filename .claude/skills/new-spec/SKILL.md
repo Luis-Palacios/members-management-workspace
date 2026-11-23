@@ -31,4 +31,4 @@ contracts between services and the implementation order; handoffs and code come 
 5. Check facts you state about the code (grep them). Then show a short summary of the
    decisions you made beyond the user's answers, and ask before committing.
 6. On yes: commit, push, `gh pr create` (docs-only PR, no bot review). It merges with `/sync-main merge`.
-   Next step is `/run-stage` for the first repo.
+   Next step is `/build-spec docs/specs/<slug>.md`.

@@ -53,5 +53,5 @@ is the one place its status is kept, so it isn't repeated here.
 | [Report submitted emails](docs/specs/report-submitted-emails.md) | Emails to watchers when a report is submitted |
 | [Care and the care log](docs/specs/care.md) | Care follow-up and its log |
 
-New specs start with `/new-spec`; each repo's stage runs with `/run-stage`, UI checks with
-`/browser-check`.
+New specs start with `/new-spec`. `/build-spec` then builds one from this workspace, with a
+subagent per repo that writes its own handoff, and UI checks run with `/browser-check`.
