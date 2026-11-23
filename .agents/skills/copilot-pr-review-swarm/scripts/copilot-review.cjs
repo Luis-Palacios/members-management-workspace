@@ -35,7 +35,16 @@ async function request(fetchFn, route, credential, options = {}) {
   } catch {
     throw new Error('GitHub API request failed; check network connectivity.');
   }
-  if (!response.ok) throw new Error(`GitHub API ${route.split('?')[0]} returned HTTP ${response.status}.`);
+  if (!response.ok) {
+    let message;
+    try {
+      const data = await response.json();
+      if (typeof data.message === 'string') message = data.message.replace(/\s+/g, ' ').trim().slice(0, 500);
+    } catch {
+      // Preserve the HTTP status when GitHub does not return a JSON error.
+    }
+    throw new Error(`GitHub API ${route.split('?')[0]} returned HTTP ${response.status}${message ? `: ${message}` : '.'}`);
+  }
   try {
     return await response.json();
   } catch {
@@ -67,7 +76,10 @@ async function authenticate(repo, key, fetchFn = fetch) {
   }
   const installation = matches[0];
   if (!Number.isSafeInteger(installation.id) || installation.id <= 0) throw new Error('GitHub returned an invalid installation ID.');
-  const tokenData = await request(fetchFn, `/app/installations/${installation.id}/access_tokens`, jwt, { method: 'POST' });
+  const tokenData = await request(fetchFn, `/app/installations/${installation.id}/access_tokens`, jwt, {
+    method: 'POST',
+    body: { repositories: [match[2]] }
+  });
   if (typeof tokenData.token !== 'string' || !tokenData.token) throw new Error('GitHub returned no installation token.');
   const repository = await request(fetchFn, `/repos/${match[1]}/${match[2]}`, tokenData.token);
   if (repository.full_name?.toLowerCase() !== repo.toLowerCase()) throw new Error('The installation cannot access the specified repository.');

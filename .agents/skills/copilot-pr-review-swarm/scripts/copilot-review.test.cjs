@@ -13,7 +13,8 @@ const sha = 'a'.repeat(40);
 
 function fakeGitHub({ app = { id: 5895023, slug: 'lp-copilot-reviewer' },
   installations = [{ id: 12, account: { login: 'Owner' } }],
-  permission = 'write', repoStatus = 200, head = sha } = {}) {
+  permission = 'write', repoStatus = 200, head = sha,
+  reviewStatus = 200, reviewData = { id: 77 } } = {}) {
   const calls = [];
   const fetchFn = async (url, options) => {
     const route = new URL(url).pathname;
@@ -29,7 +30,10 @@ function fakeGitHub({ app = { id: 5895023, slug: 'lp-copilot-reviewer' },
       status = repoStatus;
       data = { full_name: 'Owner/repo' };
     } else if (route === '/repos/Owner/repo/pulls/42') data = { state: 'open', head: { sha: head } };
-    else if (route === '/repos/Owner/repo/pulls/42/reviews') data = { id: 77 };
+    else if (route === '/repos/Owner/repo/pulls/42/reviews') {
+      status = reviewStatus;
+      data = reviewData;
+    }
     else throw new Error('Unexpected request');
     return { ok: status === 200, status, json: async () => data };
   };
@@ -51,6 +55,7 @@ test('check verifies the app, matching owner, repository and permission', async 
   const result = await run(['check', 'Owner/repo'], privateKey, fake.fetchFn);
   assert.match(result, /lp-copilot-reviewer\[bot\].*installation 12.*pull request permission: write/);
   assert.deepEqual(fake.calls.map((call) => call.method), ['GET', 'GET', 'POST', 'GET']);
+  assert.deepEqual(JSON.parse(fake.calls[2].body), { repositories: ['repo'] });
 });
 
 test('fails closed for the wrong app, missing installation or inaccessible repository', async () => {
@@ -86,6 +91,19 @@ test('an authorized review is bound to the verified head', async () => {
     const post = fake.calls.at(-1);
     assert.equal(post.method, 'POST');
     assert.equal(JSON.parse(post.body).commit_id, sha);
+  });
+});
+
+test('surfaces GitHub error messages without dumping the response', async () => {
+  await withPayload({ event: 'COMMENT', body: 'Review' }, async (file) => {
+    const fake = fakeGitHub({
+      reviewStatus: 422,
+      reviewData: { message: 'Invalid review comment line', errors: [{ resource: 'Review', field: 'line' }] }
+    });
+    await assert.rejects(
+      run(['review', 'Owner/repo', '42', sha, file, '--authorize'], privateKey, fake.fetchFn),
+      /HTTP 422: Invalid review comment line/
+    );
   });
 });
 
