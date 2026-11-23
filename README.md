@@ -53,6 +53,7 @@ is the one place its status is kept, so it isn't repeated here.
 | [Report submitted emails](docs/specs/report-submitted-emails.md) | Emails to watchers when a report is submitted |
 | [Report reminder emails](docs/specs/report-reminder-emails.md) | Weekly reminder emails to small group leaders and co-leaders |
 | [Care and the care log](docs/specs/care.md) | Care follow-up and its log |
+| [Notifications](docs/specs/notifications.md) | In-app notification list, bell and Web Push for the three email kinds |
 
 New specs start with `/new-spec`. `/build-spec` then builds one from this workspace, with a
 subagent per repo that writes its own handoff, an Opus `spec-reviewer` checks each one, and UI checks
