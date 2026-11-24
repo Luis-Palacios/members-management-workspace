@@ -20,9 +20,11 @@ Two pieces of work, shipped in this order:
 
 **Status:** rules agreed (November 6, 2026). Design approved for both parts and repo handoffs
 written (November 6, 2026).
-Not started in any repo. **Starts after report conversations Part 2 (email) is on `main`**: the
-owner picker uses its auth-server endpoint (rule 27), and email for care (later, rule 41) uses its
-outbox.
+**Part 1 (care log) is implemented and merged in all three repos** (November 24, 2026: auth-server
+#42, membership-management #80 and #81, staff-app #117 and #118). Decisions taken while building it
+are folded into rules 1, 3, 6, 8, 11 and 12 below, each marked *(Part 1 build)*. **Part 2 (care) is
+next**, on `feature/care`. Report conversations Part 2 (email) is on `main`, so the owner picker's
+auth-server endpoint (rule 27) and the outbox for later email (rule 41) exist.
 
 - **Depends on:** `small-group-reports.md` (*reports rule N*; rule 9 observations),
   `report-conversations.md` (*conversations rule N*), `prayer-follow-up.md` (section threads),
@@ -67,7 +69,8 @@ outbox.
   - `membership-management/docs/CARE-API-HANDOFF.md`
   - `staff-app/docs/design/CARE.md` (uses the filled open-hands `CareIcon` from the canvas's
     `Sidebar` board for care everywhere; prayer keeps the heart)
-- **Branch name in every repo:** `care-log` for Part 1, `care` for Part 2.
+- **Branch name in every repo:** `feature/care-log` for Part 1, `feature/care` for Part 2 (the
+  workspace branch hook requires the prefix).
 
 ## Words
 
@@ -117,14 +120,18 @@ One repo per Claude Code session, as usual. Part 1 can ship and be used on its o
    - `meeting`: with a `mode`, `inPerson` or `online`.
    - `visit`: at their home, hospital, etc.
    - `heard`: someone told us (verbally, by email…). Has a `from` (free text, ≤ 200, e.g. "her
-     sister", "Pastor Ruiz by email").
+     sister", "Pastor Ruiz by email"). *(Part 1 build)* The API requires it (422 `heard_from`).
    - `note`: anything else worth recording.
 2. **About whom:** one or more people (members or guests), picked like tags (`PersonKey`, the same
    search; inactive members are never offered). Plus an optional **Others** free text
    (≤ 200, e.g. "her daughter, 15") for people who aren't in the system. Nobody is created from it.
    Keep it minimal, especially for minors.
 3. **With whom (optional):** other staff who took part ("Ana and I met with them"), picked from
-   members. Display only: it grants no access.
+   members. Display only: it grants no access. *(Part 1 build)* So a participant gets *Coming up*
+   and *Record how it went* (rule 11) only for entries they can already see (rule 8). The form asks
+   `POST /care-log/audience` and warns "{name} won't see this entry." for each participant outside
+   the entry's audience, using their real permissions from auth-server (no warning when it can't
+   tell).
 4. **Text:** plain, 1–4000 characters after trimming. A `planned` entry may have none (its purpose
    is optional); completing it requires the outcome text.
 5. **Date:** `occurred_on` (church date) and an optional time. A `done` entry can't be in the
@@ -135,7 +142,10 @@ One repo per Claude Code session, as usual. Part 1 can ship and be used on its o
      one). It becomes `done`.
    - **Cancel** it, with an optional reason. It stays visible as cancelled.
    - A planned entry whose date has passed is **Record how it went** (rule 11) until completed or
-     cancelled.
+     cancelled. *(Part 1 build)* **Past due** counts the time: a plan with a time is past due once
+     that time passes in church time (a 3 PM call at 3 PM that day); without a time, the day after
+     its date. *Record how it went* is also offered on the plan's own day, before its time; the
+     amber badge follows past due only.
 7. **Who logs:** anyone with `careLog: create`, about people in their members / guests scope
    (permissions rule 3; guest rule 17). **Needs a linked member**, like conversations rule 5: the
    entry stores the author's `user_id` and `member_id`; without a link, 409 "Link your account to a
@@ -147,7 +157,10 @@ One repo per Claude Code session, as usual. Part 1 can ship and be used on its o
    - `private`: admins and elders, and the author.
    - A leader who sees an entry sees all its people's names; each name links only if they may open
      that person (tags rule 12).
-   - The person themselves never sees it (tags rule 23).
+   - The person themselves never sees it (tags rule 23). *(Part 1 build)* Staff are people too: a
+     viewer without `careLog: all` never sees an entry about their own member unless they wrote it
+     (a co-leader in their own group's scope included). `careLog: all` still sees everything, about
+     themselves too (decided: "only for leaders").
 9. **Inside a care** an entry has no visibility of its own: it follows the care's audience
    (rule 18), now and when the care's visibility changes. Its people default to the care's people
    and may be fewer; inside a care, people are optional (a note about the care as a whole).
@@ -159,11 +172,16 @@ One repo per Claude Code session, as usual. Part 1 can ship and be used on its o
     each with *Record how it went*, then their planned entries in the next 7 days. All of them, no
     "see all" link: only your own plans are listed, so the list stays short. Part 2's Care page
     brings the full lists. On the person timeline, planned entries still ahead sit under a *Coming
-    up* heading above the months, whatever the date range.
+    up* heading above the months, whatever the date range. *(Part 1 build)* "Past due" follows
+    rule 6 (the plan's time counts), and a participant only gets plans they can see (rule 3).
 12. **Linked source (optional):** an entry can be logged from a report attendance row, a report
     section item or a conversation thread; it keeps a link and shows "From the report of Oct 12 ·
     Nuevos Jueves". The link opens only for viewers who can see the source. Deleting the report
-    removes the link, not the entry.
+    removes the link, not the entry. *(Part 1 build)* A report item links as its report's
+    **section** (`prayer`, `praise`, `followUp`), not the item: editing a report re-creates its
+    items, so an item id would break on the first edit. The *Log care* menu sits on each section and
+    prefills its tagged people. A source the viewer can't open shows "A report note you don't have
+    access to" and nothing else (not even which section). A no-meeting report has no sections.
 13. **On the person timeline** (new kind `careLog`, inactive-guests rule 15): every entry the viewer
     can see (rule 8 or 18) that is about that person, at its date. Planned entries show with a
     *Planned* badge; cancelled ones are left out. A **Care** type chip filters them (tags rule 22);
@@ -350,7 +368,8 @@ back) and drives *Unread* and ordering.
 ## Contracts (sketch; the handoffs fix the details)
 
 - `POST /care-log`, `GET /care-log/{id}`, `PATCH /care-log/{id}`, `DELETE /care-log/{id}`,
-  `POST /care-log/{id}/complete`, `POST /care-log/{id}/cancel`, `GET /care-log/coming-up`.
+  `POST /care-log/{id}/complete`, `POST /care-log/{id}/cancel`, `GET /care-log/coming-up`,
+  `GET /care-log/people-search`, `POST /care-log/audience` *(Part 1 build: rule 3's warning)*.
 - `GET /members|guests/{id}/timeline` gains entries of kind `careLog` (Part 1) and `care` (Part 2).
   staff-app skips kinds it doesn't know, so the API can ship them first.
 - `GET /care-cases?tab=attention|open|unread|prayer|closed&mine=&urgent=&group=`,
