@@ -24,6 +24,7 @@ All workers run with `workspace: "inherit"` (strictly read-only) and inherit the
 | `staff-reviewer` | `staff-app` |
 | `infra-reviewer` | `management-infra` |
 | `landing-reviewer` | `ekklesiaio-landing` |
+| `design-reviewer` | `design-canvas` |
 | `monitor` | Stall monitor (add if `swarm_monitor` skill is available) |
 
 Skip any repo directory that does not exist or has no GitHub remote.
@@ -38,7 +39,7 @@ Skip any repo directory that does not exist or has no GitHub remote.
 ## 2. Scout Open PRs (Skip if User Named Specific PRs)
 
 - If the user already specified a repo and PR number, go straight to Step 3 for that repo.
-- Otherwise, spawn (or wake) `pr-scout` to list open PRs across all 6 repos:
+- Otherwise, spawn (or wake) `pr-scout` to list open PRs across all 7 repos:
   ```bash
   gh pr list --state open --json number,title,headRefName,baseRefName,url,isDraft,updatedAt,reviewDecision,reviews
   ```
