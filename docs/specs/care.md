@@ -35,8 +35,9 @@ are folded into rules 1, 3, 6, 8, 11 and 12 below, each marked *(Part 1 build)*.
 calendar) is implemented and merged** (November 24, 2026: membership-management #82, staff-app #119;
 auth-server and design-canvas had nothing to do). Its build decisions are folded into rules 3, 8, 48,
 52 and 56 below, each marked *(Part 1b build)*; the rest lives in the two handoffs' *Part 1b*
-sections. **Part 1c (notes)** is next: rules agreed November 25, 2026 (rules 59–63); boards to draw
-first. **Part 2 (care) follows**, on
+sections. **Part 1c (notes)** is next: rules agreed November 25, 2026 (rules 59–63); boards drawn
+and approved November 25, 2026 (design-canvas #6); the membership-management and staff-app handoff
+sections are still to be written. **Part 2 (care) follows**, on
 `feature/care`. Report conversations Part 2 (email) is on `main`, so the owner picker's auth-server
 endpoint (rule 27) and the outbox for later email (rule 41) exist.
 
@@ -83,12 +84,24 @@ endpoint (rule 27) and the outbox for later email (rule 41) exist.
     `AddToCalendar`, `Sidebar` `careCalendar: on`) and *Part 1b · A care log entry's page*
     (`CareLogEntry`). Choices the boards settle: a month cell shows 2 entries, then "+N more"
     (opens the agenda); done soft blue, planned a dashed outline, past due amber; weeks start
-    Sunday (en) or Monday (es). *To fix on the board:* `CareCalendar`'s leader *All* hint still says
-    *Elders only* entries don't show; since rules 3 and 8 changed, the app reads "Care about people
-    in your groups, and entries you wrote or took part in."
-  - **Part 1c (to draw, then approve)**, a new row on the same page, its blue rules note matching
-    rules 59–63: the timeline row with notes collapsed and open, the note form (add, edit), the
-    entry page with its notes and *Add your note*, the calendar panel with notes, phone dark ES.
+    Sunday (en) or Monday (es). `CareCalendar`'s leader *All* hint matches rules 3 and 8
+    (design-canvas #5): "Care about people in your groups, and entries you wrote or took part in."
+  - **Part 1c (approved November 25, 2026, design-canvas #6)**, row *Part 1c · Notes from those who
+    took part*, its blue rules note matching rules 59–63:
+    - `PersonTimeline` gains `notes`: `off` | `collapsed` | `open` | `expanded`. Variants:
+      `PersonTimeline-CareNotes`, `PersonTimeline-CareNotes-Open-Leader`,
+      `PersonTimeline-CareNotes-Expanded`, `PersonTimeline-CareNotes-Phone-Dark-ES`.
+    - `CareLogEntry` gains `entry`: `doneNotes` and `note`: `none` | `add` | `edit` | `delete`.
+      Variants: `CareLogEntry-Notes`, `CareLogEntry-Note-Add`, `CareLogEntry-Note-Edit-Leader`,
+      `CareLogEntry-Note-Delete-Leader`, `CareLogEntry-Notes-Phone-Dark-ES`.
+    - `CareCalendarEntry` gains `entry`: `doneNotes` and `more`: `closed` | `open`. Variants:
+      `CareCalendar-Entry-Notes`, `CareCalendar-Entry-Notes-Expanded`.
+    - Choices the boards settle: notes oldest first, each with initials, writer ("(you)"), date and
+      "edited"; the form says "Everyone who can see this entry sees your note." with a 0 / 4000
+      counter; *Delete* confirms inline ("Delete your note? It can't be brought back." · *Delete
+      note* / *Keep it*); *Add your note* in the calendar panel opens the entry's page with the form
+      open (one form, not a second one in the panel); long notes clamp to 4 lines with *Show more*
+      on the timeline and the panel (rule 62).
 - **Repo handoffs (the work, stage by stage):**
   - `auth-server/docs/CARE-HANDOFF.md` (small: two resources)
   - `membership-management/docs/CARE-API-HANDOFF.md`
@@ -136,7 +149,8 @@ Part 1, care log:
 Part 1b, care calendar: **done** (membership-management #82, staff-app #119, November 24, 2026).
 
 Part 1c, notes (auth-server: nothing):
-- `design-canvas` first: the Part 1c boards, approved before any code.
+- `design-canvas` first: the Part 1c boards, approved before any code. Done: approved November 25,
+  2026 (design-canvas #6).
 - `membership-management`: the notes table and routes; notes in the entry and the timeline
   (rules 59–63).
 - `staff-app`, once that is merged: notes on the timeline row, the entry page and the calendar
@@ -372,6 +386,10 @@ entries would show the same meeting several times.
       on your own.
     - **Calendar panel (rule 54):** open, like the page, with *Add your note*.
     - *Recent activity* and the calendar's month cells don't show them.
+    - **Long notes** *(added November 25, 2026, with the boards)*: on the timeline row and the
+      calendar panel each note shows 4 lines, then *Show more* expands it in place (*Show less*
+      folds it back). The entry page always shows notes in full. The limit stays 4000 (rule 59);
+      one note per person still holds, so more room means editing your own note.
 63. **Quiet:** a missing note isn't a task. Nothing in *Coming up*, no badge, no reminder, no
     notification. Adding a note doesn't change the entry's date or status.
 
