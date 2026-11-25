@@ -6,12 +6,16 @@ visit, or someone telling an elder about a member. Today none of that has a home
 conversation comments and gets lost. And some of it isn't one event but **something going on**
 (a family crisis, an illness) that has to be followed until it's resolved, without being forgotten.
 
-Two pieces of work, shipped in this order:
+Three pieces of work, shipped in this order:
 
 - **Part 1: the care log.** A **care log entry** (*registro de cuidado*) records that something
   happened, or is planned: a call, messages, a meeting, a visit, something we heard, a note. It is
   about one or more people (members or guests) and shows on **each person's timeline**. Leaders,
   co-leaders and elders can all log.
+- **Part 1b: the care calendar** (added November 24, 2026). Planned entries get **Add to
+  calendar** (Google, Outlook, an `.ics` file), carrying only what's needed to show up (rule 48),
+  and a **Care calendar** page shows past and future entries by month or as an agenda, *Mine*
+  first. Emailed calendar invitations come later, with care emails (rule 44).
 - **Part 2: care.** A **care** (*acompañamiento*) is something going on that needs following up:
   people, one or more owners, a status, an *Urgent* flag, a **next check-in date** and its own
   stream of updates (care log entries plus events). A **Care** page lists them, with *Needs
@@ -22,9 +26,12 @@ Two pieces of work, shipped in this order:
 written (November 6, 2026).
 **Part 1 (care log) is implemented and merged in all three repos** (November 24, 2026: auth-server
 #42, membership-management #80 and #81, staff-app #117 and #118). Decisions taken while building it
-are folded into rules 1, 3, 6, 8, 11 and 12 below, each marked *(Part 1 build)*. **Part 2 (care) is
-next**, on `feature/care`. Report conversations Part 2 (email) is on `main`, so the owner picker's
-auth-server endpoint (rule 27) and the outbox for later email (rule 41) exist.
+are folded into rules 1, 3, 6, 8, 11 and 12 below, each marked *(Part 1 build)*. **Part 1b (care
+calendar) is next**: rules agreed November 24, 2026 (rules 47–55); its canvas boards and the
+membership-management and staff-app handoff sections are still to be written (a new session, starting
+with the canvas). **Part 2 (care) follows**, on `feature/care`. Report conversations Part 2 (email) is
+on `main`, so the owner picker's auth-server endpoint (rule 27) and the outbox for later email
+(rule 41) exist.
 
 - **Depends on:** `small-group-reports.md` (*reports rule N*; rule 9 observations),
   `report-conversations.md` (*conversations rule N*), `prayer-follow-up.md` (section threads),
@@ -64,13 +71,27 @@ auth-server endpoint (rule 27) and the outbox for later email (rule 41) exist.
       `MemberDetail-Timeline-CareFull`, `PersonTimeline-CareFull-Leader`.
   - Not drawn: the status menu (open ↔ monitoring) on the status pill; the owner picker's list;
     email (rule 41).
+  - **Part 1b (to draw, then approve)**, a new row *Care calendar* on the same page, its blue rules
+    note matching rules 47–55:
+    - `AddToCalendarMenu` (the menu on a plan: Google Calendar, Outlook, *Download (.ics)*, and the
+      one-line note of rule 49), shown on a timeline row, a *Coming up* row and the calendar's
+      entry panel; and the toast after saving a plan, with an *Add to calendar* action.
+    - `CareCalendar` (tweaks `view`: `month` | `agenda`; `filter`: `mine` | `all`; `group`;
+      `user`: `elder` | `leader`; `state`: `full` | `empty`; `size`; `lang`; `mode`) and its entry
+      panel (`CareCalendarEntry`: done, planned, past due; *Edit*, *Record how it went*, *Add to
+      calendar* as allowed). Variants to draw at least: month (elder, *Mine*), agenda (leader),
+      *All* with a group picked, empty, entry panel open, phone dark ES (agenda).
+    - `Sidebar` (`careCalendar`: `on`): the *Care calendar* item until Part 2's *Care* item takes
+      it over (rule 55).
 - **Repo handoffs (the work, stage by stage):**
   - `auth-server/docs/CARE-HANDOFF.md` (small: two resources)
   - `membership-management/docs/CARE-API-HANDOFF.md`
   - `staff-app/docs/design/CARE.md` (uses the filled open-hands `CareIcon` from the canvas's
     `Sidebar` board for care everywhere; prayer keeps the heart)
-- **Branch name in every repo:** `feature/care-log` for Part 1, `feature/care` for Part 2 (the
-  workspace branch hook requires the prefix).
+  - Part 1b: a new *Part 1b* section (its own stages) in the membership-management and staff-app
+    handoffs above, written after the boards are approved. auth-server has nothing to do.
+- **Branch name in every repo:** `feature/care-log` for Part 1, `feature/care-calendar` for Part 1b,
+  `feature/care` for Part 2 (the workspace branch hook requires the prefix).
 
 ## Words
 
@@ -87,6 +108,8 @@ The UI never says "case" or "caso": they sound legal or clinical. Code may use `
 | No owner yet | Needs an owner | Sin responsable | |
 | List of what's overdue or unowned | Needs attention | Requiere atención | |
 | Shareable line for prayer | Prayer summary | Resumen para oración | `prayer_summary` |
+| Copy a plan into your own calendar | Add to calendar | Agregar al calendario | |
+| The page of entries by date | Care calendar | Calendario de cuidado | `care-calendar` |
 
 *Pastoral* is avoided in Spanish labels: leaders and co-leaders log care too, not only pastors and
 elders.
@@ -99,6 +122,12 @@ Part 1, care log:
    source (rule 13).
 3. `staff-app`: the log form, the timeline entry, *Log* on the person page and from report rows and
    conversations, *Coming up* on the dashboards (rule 11).
+
+Part 1b, care calendar (auth-server: nothing; `careLog: view` and `create` already cover it):
+- `design-canvas` first: the Part 1b boards (see *Design*), approved on the canvas before any code.
+- `membership-management`: `GET /care-log` by date range with the calendar's filters (rule 53).
+- `staff-app`, once that is merged: *Add to calendar* (rules 47–49), the *Care calendar* page and
+  its sidebar item (rules 50–55).
 
 Part 2, care:
 4. `auth-server`: the `care` resource (rule 40). One stage.
@@ -186,6 +215,74 @@ One repo per Claude Code session, as usual. Part 1 can ship and be used on its o
     can see (rule 8 or 18) that is about that person, at its date. Planned entries show with a
     *Planned* badge; cancelled ones are left out. A **Care** type chip filters them (tags rule 22);
     report counts are unchanged. *Recent activity* includes them.
+
+### Part 1b: the care calendar
+
+Numbered after rule 46 so the existing rule numbers stay put. Decided November 24, 2026.
+
+#### Add to calendar
+
+47. **Add to calendar** is offered on a **planned** entry (not done or cancelled) to anyone who can
+    see it (rule 8; inside a care, rule 18), on the timeline row, the *Coming up* row, the calendar's
+    entry panel (rule 54), and as an action in the toast after saving a plan. Three choices:
+    **Google Calendar** (a `calendar.google.com/calendar/render?action=TEMPLATE…` link),
+    **Outlook** (an `outlook.office.com/calendar/deeplink/compose?…` link) and **Download (.ics)**
+    (Apple Calendar, Outlook desktop and anything else). Built in staff-app; no API change, nothing
+    stored, no third-party call from our servers.
+48. **What leaves the app is the minimum** (calendars get synced to other companies and shared with
+    family or assistants):
+    - **Title:** the kind and the first person's first name plus initial, in the viewer's language:
+      "Call · Óscar A." / "Llamada · Óscar A."; with more people, "+N" ("Visit · Óscar A. +1").
+      An *Elders only* entry (`private`) gets a neutral title with no name: "Care call" /
+      "Llamada de cuidado" (likewise for meeting and visit).
+    - **Description:** one line, "Care log entry in ekklesiaio", and the link back to the entry in
+      the staff app (which needs signing in and still applies rule 8). An entry has no page of its
+      own, so the link opens the care calendar on that day with the entry's panel open
+      (`/care/calendar?view=agenda&month=…&entry={id}`; rule 54). Never the purpose or outcome
+      text, *Others*, *heard from*, the participants' names or the visibility.
+    - **Location:** "Online" / "En línea" for an online meeting; nothing otherwise (no address is
+      stored).
+    - **When:** the planned date and time in the church's time zone (`CHURCH_TIMEZONE`). Length by
+      kind, since a plan has none: call 30 minutes, meeting and visit 1 hour. A plan with no time
+      is an all-day event.
+    - The `.ics` carries a stable `UID` per entry (`care-log-{id}@` + the app's host), so a client
+      that imports it again can recognise it.
+49. **A copy, not a sync.** Moving, editing or cancelling the plan in the app doesn't change the
+    calendar event. The menu says so in one line: "This adds a copy. If the plan changes, update
+    your calendar too." Keeping calendars in sync is the later invitations work (rule 44).
+
+#### The calendar page
+
+50. **Care calendar** (`/care/calendar`, sidebar *Care calendar* / *Calendario de cuidado*, needs
+    `careLog: view`): the care log entries the viewer can see (rule 8; inside a care, rule 18), past
+    and future, done and planned. Cancelled and deleted entries are left out, as on the timeline
+    (rule 13).
+51. **Views:** **Month** (the default from `md` up; each day lists its entries, "+N more" when they
+    don't fit) and **Agenda** (a list by day, the default on phones and available everywhere).
+    *Today*, previous and next. The view and the month are in the URL (`?view=month|agenda&month=YYYY-MM`)
+    so a link or a reload keeps them.
+52. **Filters:** **Mine** (the default for everyone: entries the viewer wrote or is *with*) and
+    **All** (everything the viewer can see: for an elder or admin, the whole church; for a leader,
+    what rule 8 shares with them). A **group** picker narrows *All* to entries about people
+    currently in that group (any group for `careLog: all`, the groups the viewer leads otherwise),
+    and **kind** chips (Call, Messages, Meeting, Visit, Someone told us, Note). The filter and group
+    are in the URL too.
+53. **API:** `GET /care-log?from=&to=&mine=&groupId=&kind=` (`careLog: view`), `from`/`to` church
+    dates at most 62 days apart (a month view with the days around it), returning
+    `CareLogEntrySchema` items ordered by date and time, with the same visibility condition as every
+    other read (rule 8; rule 18 once Part 2 adds cares). `mine` = author or participant; `groupId`
+    outside the caller's reach is 404; `kind` repeats. No paging within the range; a range over the
+    limit is 422 `range`.
+54. **An entry on the calendar** shows its kind icon, time (or nothing for all-day), the people's
+    names (each a link only if the viewer may open that person, tags rule 12), and a *Planned* or
+    amber past-due mark (rule 6). Opening it shows a panel (a dialog from `md` up, a bottom sheet
+    below) with the entry as the timeline row shows it, and *Edit*, *Record how it went* and *Add to
+    calendar* when they apply (rules 6, 10, 47). *Log care* from the page opens the form with the
+    picked day as the date and nobody in *About*.
+55. **Where it goes in Part 2.** Part 2's **Care** page (rule 39) gains a *Calendar* tab at the same
+    route, and its *Care* sidebar item replaces *Care calendar*. A care's own entries show on the
+    calendar like any other (inside a care they follow rule 18), with "Care: {title}" in the panel
+    for viewers who can open the care (rule 37).
 
 ### Part 2: care
 
@@ -337,7 +434,14 @@ One repo per Claude Code session, as usual. Part 1 can ship and be used on its o
     preferences. A Part 3 once Part 2 is in use.
 42. Configurable check-in suggestions, care categories or tags, attachments, @mentions.
 43. The person seeing anything about their own care (never, unless a later spec says otherwise).
-44. Push notifications, calendar invites for planned meetings, syncing with WhatsApp.
+44. Push notifications, calendar invites for planned meetings, syncing with WhatsApp. *(Updated
+    November 24, 2026)* **Calendar invitations** go with rule 41's care emails (a Part 3): an `.ics`
+    invitation emailed to the author and to participants who can see the entry (rule 3), through
+    the outbox and an auth-server template with an attachment, with updates and a cancellation
+    sent when the plan changes (same `UID`, higher `SEQUENCE`, `METHOD:CANCEL`), the content of
+    rule 48, and an on/off preference. Weigh then, instead of or beside it, a **personal calendar
+    feed** (one private subscribe link per user, kept in sync, with *Reset link*). Direct Google or
+    Outlook account integration stays out.
 45. Prayer summaries on Prayer & follow-up and *Copy for WhatsApp* for them.
 46. A safeguarding policy (who must be told, what may be written down for minors). Nothing official
     exists today; if one is adopted, it likely forces `private` plus named owners for some cares.
@@ -370,6 +474,8 @@ back) and drives *Unread* and ordering.
 - `POST /care-log`, `GET /care-log/{id}`, `PATCH /care-log/{id}`, `DELETE /care-log/{id}`,
   `POST /care-log/{id}/complete`, `POST /care-log/{id}/cancel`, `GET /care-log/coming-up`,
   `GET /care-log/people-search`, `POST /care-log/audience` *(Part 1 build: rule 3's warning)*.
+- Part 1b: `GET /care-log?from=&to=&mine=&groupId=&kind=` (rule 53). *Add to calendar* is built in
+  staff-app from the entry it already has (rules 47–48).
 - `GET /members|guests/{id}/timeline` gains entries of kind `careLog` (Part 1) and `care` (Part 2).
   staff-app skips kinds it doesn't know, so the API can ship them first.
 - `GET /care-cases?tab=attention|open|unread|prayer|closed&mine=&urgent=&group=`,
